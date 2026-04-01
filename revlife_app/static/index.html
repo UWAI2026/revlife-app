@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rev Life 1035 Exchange Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a1a;min-height:100vh}
+input,select,textarea,button{font-family:inherit}
+
+/* AUTH */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f2f5}
+.auth-box{background:white;border-radius:12px;padding:40px;width:100%;max-width:420px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px}
+.auth-logo-dot{width:10px;height:10px;border-radius:50%;background:#c9a84c}
+.auth-logo-text{font-size:16px;font-weight:600;color:#1a2c4e}
+.auth-title{font-size:22px;font-weight:600;color:#1a2c4e;margin-bottom:6px}
+.auth-sub{font-size:13px;color:#666;margin-bottom:28px}
+.auth-tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1.5px solid #eee}
+.auth-tab{padding:8px 16px;font-size:13px;font-weight:500;color:#888;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px}
+.auth-tab.on{color:#1a2c4e;border-bottom-color:#c9a84c}
+.fgroup{margin-bottom:16px}
+.flabel{font-size:12px;color:#555;margin-bottom:5px;display:block}
+.finput{width:100%;padding:9px 12px;font-size:13px;border:1px solid #ddd;border-radius:8px;outline:none;transition:border .15s}
+.finput:focus{border-color:#c9a84c}
+.fbtn{width:100%;padding:11px;font-size:14px;font-weight:600;border:none;border-radius:8px;cursor:pointer;transition:all .15s}
+.fbtn-primary{background:#1a2c4e;color:white}
+.fbtn-primary:hover{background:#243d6b}
+.fbtn-gold{background:#c9a84c;color:white}
+.fbtn-gold:hover{background:#b8942f}
+.auth-err{font-size:12px;color:#e24b4a;margin-top:8px;display:none}
+.auth-note{font-size:11px;color:#999;text-align:center;margin-top:16px}
+.auth-link{color:#c9a84c;cursor:pointer;text-decoration:underline}
+
+/* APP SHELL */
+.app{display:none;flex-direction:column;min-height:100vh}
+.nav{background:#1a2c4e;padding:0 20px;display:flex;align-items:center;height:52px;flex-shrink:0}
+.nav-brand{font-size:14px;font-weight:600;color:white;margin-right:24px;display:flex;align-items:center;gap:8px}
+.nav-dot{width:8px;height:8px;border-radius:50%;background:#c9a84c;flex-shrink:0}
+.nav-tab{padding:0 14px;height:52px;display:flex;align-items:center;font-size:13px;color:rgba(255,255,255,.55);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.nav-tab:hover{color:white}
+.nav-tab.on{color:white;border-bottom-color:#c9a84c}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.nav-user{font-size:12px;color:rgba(255,255,255,.5)}
+.nav-logout{font-size:11px;color:rgba(255,255,255,.4);cursor:pointer;padding:4px 8px;border:1px solid rgba(255,255,255,.15);border-radius:6px}
+.nav-logout:hover{color:white;border-color:rgba(255,255,255,.4)}
+.content{flex:1;padding:20px;overflow-y:auto}
+
+/* PAGES */
+.page{display:none}
+.page.on{display:block}
+.page-title{font-size:17px;font-weight:600;color:#1a2c4e;margin-bottom:2px}
+.page-sub{font-size:12px;color:#666;margin-bottom:18px}
+
+/* CARDS */
+.card{background:white;border:1px solid #e8e8e8;border-radius:12px;padding:18px;margin-bottom:14px}
+.card-title{font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+
+/* STEPS */
+.steps{display:flex;margin-bottom:22px}
+.step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative}
+.step::after{content:'';position:absolute;top:13px;left:50%;width:100%;height:1px;background:#e0e0e0;z-index:0}
+.step:last-child::after{display:none}
+.step-dot{width:26px;height:26px;border-radius:50%;background:#f0f0f0;border:1.5px solid #ddd;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#999;z-index:1;position:relative}
+.step-dot.done{background:#1a2c4e;color:white;border-color:#1a2c4e}
+.step-dot.cur{background:#c9a84c;color:white;border-color:#c9a84c}
+.step-label{font-size:10px;color:#aaa;margin-top:4px;text-align:center}
+.step-label.cur{color:#8a6d20;font-weight:600}
+
+/* FORMS */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fg-full{grid-column:1/-1}
+.fl{font-size:11px;color:#555;margin-bottom:4px;display:block}
+.fi{width:100%;padding:7px 10px;font-size:12px;border:1px solid #ddd;border-radius:8px;background:white;color:#1a1a1a;outline:none;transition:border .15s}
+.fi:focus{border-color:#c9a84c}
+.fi-note{font-size:10px;color:#1d9e75;margin-top:3px}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed #ddd;border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:10px;position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:#c9a84c;background:#c9a84c06}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-label{font-size:13px;color:#666}
+.upload-sub{font-size:11px;color:#aaa;margin-top:4px}
+.upload-done{font-size:12px;color:#1d9e75;font-weight:600;margin-top:6px}
+
+/* BUTTONS */
+.btn{padding:7px 14px;font-size:12px;border-radius:8px;cursor:pointer;font-weight:600;border:1.5px solid #ddd;background:white;color:#333;transition:all .15s}
+.btn:hover{background:#f5f5f5}
+.btn-primary{background:#1a2c4e;color:white;border-color:#1a2c4e}
+.btn-primary:hover{background:#243d6b}
+.btn-gold{background:#c9a84c;color:white;border-color:#c9a84c}
+.btn-gold:hover{background:#b8942f}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
+
+/* FLAGS */
+.flag-list{display:flex;flex-direction:column;gap:6px}
+.flag-item{display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border-radius:8px}
+.flag-item.bad{background:#fff0f0}
+.flag-item.good{background:#f0faf5}
+.flag-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:700}
+.flag-dot.r{background:#e24b4a}
+.flag-dot.g{background:#1d9e75}
+.flag-text{font-size:12px;color:#1a1a1a;line-height:1.4;font-weight:500}
+.flag-sub{font-size:10px;color:#888;margin-top:1px}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* ADV/DIS */
+.adv-list{display:flex;flex-direction:column;gap:4px}
+.adv-item{font-size:12px;padding:6px 10px;border-left:3px solid;line-height:1.4;border-radius:0 4px 4px 0}
+.adv-item.d{border-color:#e24b4a;background:#fff0f0;color:#c0392b}
+.adv-item.a{border-color:#1d9e75;background:#f0faf5;color:#0f6e56}
+
+/* CARRIER REC */
+.carrier-rec{border-radius:8px;padding:12px;margin-bottom:10px;border:1px solid}
+.carrier-rec.ok{background:#f0f6ff;border-color:#b5d4f4}
+.carrier-rec.wn{background:#fffbf0;border-color:#f5c842}
+.carrier-rec.er{background:#fff0f0;border-color:#f5c1c1}
+.carrier-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-block;margin-bottom:5px}
+.carrier-badge.az{background:#1a2c4e;color:white}
+.carrier-badge.cl{background:#c9a84c22;color:#7a5f10}
+.carrier-badge.wn{background:#fff3cd;color:#856404}
+.carrier-reason{font-size:11px;color:#555;line-height:1.5}
+.carrier-toggle{display:flex;gap:8px;margin-top:8px}
+.carrier-opt{flex:1;padding:8px 10px;border-radius:8px;border:1.5px solid #ddd;text-align:center;cursor:pointer;transition:all .15s}
+.carrier-opt.sel{border-color:#c9a84c;background:#fffbf0}
+.carrier-opt-name{font-size:13px;font-weight:600;color:#1a1a1a}
+.carrier-opt-sub{font-size:10px;color:#888;margin-top:1px}
+
+/* CALC BOX */
+.calc-box{background:#f8f8f8;border-radius:8px;padding:12px;margin-bottom:10px}
+.calc-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0}
+.calc-label{color:#888}
+.calc-val{font-weight:600;color:#1a1a1a}
+.calc-result{font-size:13px;font-weight:600;color:#1a2c4e;border-top:1px solid #eee;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between}
+
+/* STAT ROW */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat-card{background:white;border-radius:10px;padding:14px;border:1px solid #e8e8e8}
+.stat-label{font-size:11px;color:#888;margin-bottom:3px}
+.stat-value{font-size:22px;font-weight:700;color:#1a2c4e}
+
+/* PIPELINE */
+.pipeline-wrap{overflow-x:auto}
+.pipeline-stages{display:flex;gap:0;min-width:700px}
+.stage-col{flex:1;min-width:0}
+.stage-header{padding:8px;font-size:10px;font-weight:700;color:#888;border-bottom:2px solid #eee;text-align:center;line-height:1.3;text-transform:uppercase;letter-spacing:.04em}
+.stage-header.active{border-bottom-color:#c9a84c;color:#8a6d20}
+.stage-cards{padding:7px 5px;display:flex;flex-direction:column;gap:5px;min-height:60px}
+.pipeline-card{background:white;border:1px solid #eee;border-radius:8px;padding:7px 9px;font-size:11px;cursor:pointer;transition:border .15s}
+.pipeline-card:hover{border-color:#c9a84c}
+.pipeline-card.overdue{border-left:3px solid #e24b4a;background:#fff8f8}
+.pipeline-card.overdue .pc-name{color:#c0392b}
+.pc-overdue{font-size:9px;color:#e24b4a;font-weight:700;margin-top:2px}
+.pc-name{font-weight:600;color:#1a1a1a}
+.pc-agent{color:#888;font-size:10px}
+.pc-date{color:#aaa;font-size:10px;margin-top:2px}
+.pc-note{font-size:10px;color:#378add;margin-top:2px}
+
+/* PIPELINE MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;display:none}
+.modal-overlay.on{display:flex}
+.modal{background:white;border-radius:14px;padding:28px;width:100%;max-width:480px;position:relative}
+.modal-title{font-size:16px;font-weight:700;color:#1a2c4e;margin-bottom:4px}
+.modal-sub{font-size:12px;color:#888;margin-bottom:20px}
+.modal-close{position:absolute;top:16px;right:16px;font-size:18px;cursor:pointer;color:#aaa;line-height:1}
+.modal-close:hover{color:#333}
+.stage-select{width:100%;padding:9px 12px;font-size:13px;border:1.5px solid #ddd;border-radius:8px;outline:none;margin-bottom:14px}
+.stage-select:focus{border-color:#c9a84c}
+.modal-note-area{width:100%;padding:8px 10px;font-size:12px;border:1.5px solid #ddd;border-radius:8px;outline:none;min-height:70px;resize:vertical;margin-bottom:14px}
+.modal-note-area:focus{border-color:#c9a84c}
+
+/* LEADERBOARD */
+.lb-search{width:100%;padding:8px 12px;font-size:13px;border:1.5px solid #ddd;border-radius:8px;outline:none;margin-bottom:14px}
+.lb-search:focus{border-color:#c9a84c}
+.lb-table{width:100%;border-collapse:collapse}
+.lb-table th{font-size:11px;color:#888;font-weight:600;text-align:left;padding:5px 8px;border-bottom:1px solid #eee}
+.lb-table td{padding:8px;font-size:12px;border-bottom:1px solid #f5f5f5}
+.lb-bar-wrap{height:5px;background:#f0f0f0;border-radius:3px;width:80px}
+.lb-bar{height:5px;border-radius:3px;background:#c9a84c}
+.lb-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;background:#c9a84c22;color:#7a5f10}
+.lb-sub{font-size:10px;color:#aaa}
+
+/* ONE-PAGER PREVIEW */
+.op-preview{border:1px solid #ddd;border-radius:10px;overflow:hidden;font-family:Arial,sans-serif}
+.op-header{background:#1a2c4e;padding:18px 22px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.op-client-name{font-size:14px;font-weight:700;color:white;border:1px solid rgba(255,255,255,.35);padding:3px 10px;display:inline-block;margin-bottom:6px}
+.op-title-big{font-size:20px;font-weight:900;color:white;letter-spacing:.03em}
+.op-title-sub{font-size:12px;font-style:italic;color:rgba(255,255,255,.65)}
+.op-contact-box{background:white;padding:10px 14px;border-radius:4px;min-width:165px}
+.op-contact-head{font-size:10px;font-weight:700;color:#1a2c4e;letter-spacing:.05em;margin-bottom:8px}
+.op-contact-row{font-size:10px;color:#777;margin-bottom:3px;display:flex;align-items:center;gap:5px}
+.op-body{display:grid;grid-template-columns:1fr 1fr}
+.op-col{padding:16px 20px}
+.op-col-right{border-left:1px solid #eee}
+.op-col-head{font-size:11px;font-weight:700;color:#1a2c4e;text-align:center;margin-bottom:12px}
+.op-field{margin-bottom:9px}
+.op-field-label{font-size:9px;color:#888}
+.op-field-value{font-size:11px;font-weight:600;color:#1a1a1a;border-bottom:1px solid #ddd;padding-bottom:2px;margin-top:1px;min-height:16px}
+.op-section-label{font-size:10px;font-weight:700;color:#1a2c4e;margin:8px 0 5px}
+.op-list{list-style:none;counter-reset:li;display:flex;flex-direction:column;gap:3px}
+.op-list li{counter-increment:li;font-size:9px;color:#1a1a1a;padding-left:13px;position:relative;line-height:1.4}
+.op-list li::before{content:counter(li)".";position:absolute;left:0;color:#c9a84c;font-weight:700}
+.op-footer{background:#1a2c4e;padding:8px 18px;font-size:8px;color:rgba(255,255,255,.45);text-align:center;line-height:1.5}
+.op-fillable{border-bottom:1px solid rgba(255,255,255,.4);display:inline-block;min-width:120px;color:rgba(255,255,255,.4);font-style:italic}
+
+/* AI LOADING */
+.ai-loading{display:none;align-items:center;gap:10px;padding:14px;background:#f0f6ff;border-radius:8px;border:1px solid #b5d4f4;margin-top:10px}
+.ai-loading.on{display:flex}
+.ai-spinner{width:16px;height:16px;border:2px solid #b5d4f4;border-top-color:#1a2c4e;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai-loading-text{font-size:12px;color:#1a2c4e;font-weight:500}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:#1a2c4e;color:white;padding:12px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999;opacity:0;transform:translateY(10px);transition:all .25s;pointer-events:none}
+.toast.on{opacity:1;transform:translateY(0)}
+
+/* AGENT VIEW BANNER */
+.agent-banner{background:#1a2c4e0d;border:1px solid #1a2c4e22;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1a2c4e;display:flex;align-items:center;gap:8px}
+.agent-banner-dot{width:8px;height:8px;border-radius:50%;background:#c9a84c;flex-shrink:0}
+
+/* SAVED CASES */
+.cases-table{width:100%;border-collapse:collapse}
+.cases-table th{font-size:11px;color:#888;font-weight:600;text-align:left;padding:6px 10px;border-bottom:1px solid #eee}
+.cases-table td{padding:8px 10px;font-size:12px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+.cases-table tr:hover td{background:#fafafa}
+.stage-pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
+.stage-1{background:#fff3e0;color:#e65100}
+.stage-2{background:#e3f2fd;color:#1565c0}
+.stage-3{background:#f3e5f5;color:#6a1b9a}
+.stage-4{background:#e8f5e9;color:#2e7d32}
+.stage-5{background:#e0f2f1;color:#00695c}
+.stage-6{background:#fce4ec;color:#880e4f}
+.stage-7{background:#ede7f6;color:#4527a0}
+
+@media(max-width:600px){
+  .two-col,.fg,.stat-row{grid-template-columns:1fr}
+  .op-body{grid-template-columns:1fr}
+  .op-col-right{border-left:none;border-top:1px solid #eee}
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div class="auth-wrap" id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo"><div class="auth-logo-dot"></div><div class="auth-logo-text">Rev Life 1035 Exchange Platform</div></div>
+    <div id="auth-login-panel">
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-sub">Sign in to your account to continue</div>
+      <div class="auth-tabs">
+        <div class="auth-tab on" onclick="setAuthTab('login')">Sign in</div>
+        <div class="auth-tab" onclick="setAuthTab('register')">Agent registration</div>
+      </div>
+      <!-- LOGIN -->
+      <div id="tab-login">
+        <div class="fgroup"><label class="flabel">Email</label><input class="finput" id="login-email" type="email" placeholder="your@email.com"/></div>
+        <div class="fgroup"><label class="flabel">Password</label><input class="finput" id="login-pw" type="password" placeholder="Password"/></div>
+        <div class="auth-err" id="login-err">Invalid email or password.</div>
+        <button class="fbtn fbtn-primary" onclick="doLogin()" style="margin-top:4px">Sign in</button>
+        <div class="auth-note">FMO team: use your shared credentials<br>Agents: use the email you registered with</div>
+      </div>
+      <!-- REGISTER -->
+      <div id="tab-register" style="display:none">
+        <div class="fgroup"><label class="flabel">Invite code</label><input class="finput" id="reg-code" placeholder="Enter your invite code"/></div>
+        <div class="fgroup"><label class="flabel">Full name</label><input class="finput" id="reg-name" placeholder="Your full name"/></div>
+        <div class="fgroup"><label class="flabel">Email</label><input class="finput" id="reg-email" type="email" placeholder="your@email.com"/></div>
+        <div class="fgroup"><label class="flabel">Password</label><input class="finput" id="reg-pw" type="password" placeholder="Create a password"/></div>
+        <div class="auth-err" id="reg-err"></div>
+        <button class="fbtn fbtn-gold" onclick="doRegister()" style="margin-top:4px">Create agent account</button>
+        <div class="auth-note">Need an invite code? Contact your FMO.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="app">
+  <div class="nav">
+    <div class="nav-brand"><div class="nav-dot"></div>Rev Life 1035 Exchange Platform</div>
+    <div class="nav-tab on" id="nav-analysis" onclick="showPage('analysis',this)">New Analysis</div>
+    <div class="nav-tab" id="nav-cases" onclick="showPage('cases',this)">Cases</div>
+    <div class="nav-tab" id="nav-pipeline" onclick="showPage('pipeline',this)">Pipeline</div>
+    <div class="nav-tab" id="nav-leaderboard" onclick="showPage('leaderboard',this)">Leaderboard</div>
+    <div class="nav-right">
+      <div class="nav-user" id="nav-user-label"></div>
+      <div class="nav-logout" onclick="doLogout()">Sign out</div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- ANALYSIS PAGE -->
+    <div class="page on" id="page-analysis">
+      <div class="page-title">New 1035 Analysis</div>
+      <div class="page-sub">Upload client statement or in-force illustration to begin</div>
+
+      <!-- Step 1: Upload -->
+      <div id="s1">
+        <div class="steps">
+          <div class="step"><div class="step-dot cur">1</div><div class="step-label cur">Upload</div></div>
+          <div class="step"><div class="step-dot">2</div><div class="step-label">Review</div></div>
+          <div class="step"><div class="step-dot">3</div><div class="step-label">Options</div></div>
+          <div class="step"><div class="step-dot">4</div><div class="step-label">One-Pager</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Agent & Client Info</div>
+          <div class="fg">
+            <div><label class="fl">Agent name</label><input class="fi" id="f-agent" placeholder="e.g. Kevin Shea"/></div>
+            <div><label class="fl">Client name</label><input class="fi" id="f-client" placeholder="e.g. Jozef Bulka"/></div>
+            <div><label class="fl">Client age</label><input class="fi" id="f-age" type="number" placeholder="e.g. 62" min="0" max="90"/></div>
+            <div><label class="fl">Policies to consolidate</label>
+              <select class="fi" id="f-pc" onchange="updateSlots()">
+                <option value="1">1 policy</option><option value="2">2 policies</option><option value="3">3 policies</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Upload Documents</div>
+          <div id="upload-slots"></div>
+          <div class="ai-loading" id="ai-loader">
+            <div class="ai-spinner"></div>
+            <div class="ai-loading-text" id="ai-loader-text">Analyzing document with AI...</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="runAIAnalysis()">Analyze with AI</button>
+            <button class="btn" onclick="goStep(2)">Enter manually</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Review -->
+      <div id="s2" style="display:none">
+        <div class="steps">
+          <div class="step"><div class="step-dot done">✓</div><div class="step-label">Upload</div></div>
+          <div class="step"><div class="step-dot cur">2</div><div class="step-label cur">Review</div></div>
+          <div class="step"><div class="step-dot">3</div><div class="step-label">Options</div></div>
+          <div class="step"><div class="step-dot">4</div><div class="step-label">One-Pager</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Extracted Policy Data <span style="font-size:9px;color:#aaa;font-weight:400;text-transform:none;letter-spacing:0">(combined if multiple policies)</span></div>
+          <div style="font-size:11px;color:#1d9e75;display:flex;align-items:center;gap:5px;margin-bottom:12px">
+            <div style="width:6px;height:6px;border-radius:50%;background:#1d9e75;flex-shrink:0"></div>
+            AI extracted — verify and correct before proceeding
+          </div>
+          <div class="fg">
+            <div><label class="fl">Policy type</label>
+              <select class="fi" id="r-type" onchange="updateFlags()">
+                <option>Whole Life</option><option>Variable Life</option><option>Universal Life</option><option>Indexed Universal Life</option>
+              </select>
+            </div>
+            <div><label class="fl">Current carrier</label><input class="fi" id="r-carrier" placeholder="e.g. Pacific Life"/></div>
+            <div><label class="fl">Accumulation / surrender value ($)</label><input class="fi" id="r-csv" placeholder="e.g. 74583" oninput="updateFlags()"/></div>
+            <div><label class="fl">Death benefit ($)</label><input class="fi" id="r-db" placeholder="e.g. 100000" oninput="updateFlags()"/></div>
+            <div><label class="fl">Annualized premium ($)</label><input class="fi" id="r-prem" placeholder="e.g. 960" oninput="updateFlags();syncOpt2()"/></div>
+            <div><label class="fl">Total premiums paid ($)</label><input class="fi" id="r-totprem" placeholder="e.g. 30720" oninput="updateFlags()"/></div>
+            <div><label class="fl">Years in force</label><input class="fi" id="r-years" placeholder="e.g. 32" oninput="updateFlags()"/></div>
+            <div><label class="fl">Loan rate (% or "not listed")</label><input class="fi" id="r-loan" placeholder="e.g. 5 or not listed" oninput="updateFlags()"/></div>
+            <div><label class="fl">S&P 500 cap rate (IUL only, % or "n/a")</label><input class="fi" id="r-cap" placeholder="e.g. 9.5 or n/a" oninput="updateFlags()"/></div>
+            <div><label class="fl">Lapse age / years remaining</label><input class="fi" id="r-lapse" placeholder="e.g. age 78 or not shown" oninput="updateFlags()"/></div>
+            <div class="fg-full"><label class="fl">Chronic illness / LTC rider present?</label>
+              <select class="fi" id="r-ci" onchange="updateFlags()">
+                <option value="no">No — not on policy</option><option value="yes">Yes — rider present</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">AI-Flagged Disadvantages</div>
+          <div class="flag-list" id="flag-list"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="goStep(3)">Confirm & Build Options</button>
+          <button class="btn" onclick="goStep(1)">Back</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Options -->
+      <div id="s3" style="display:none">
+        <div class="steps">
+          <div class="step"><div class="step-dot done">✓</div><div class="step-label">Upload</div></div>
+          <div class="step"><div class="step-dot done">✓</div><div class="step-label">Review</div></div>
+          <div class="step"><div class="step-dot cur">3</div><div class="step-label cur">Options</div></div>
+          <div class="step"><div class="step-dot">4</div><div class="step-label">One-Pager</div></div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Carrier Recommendation</div>
+            <div id="carrier-rec-box"></div>
+            <div style="font-size:10px;color:#aaa;margin-bottom:5px">FMO override:</div>
+            <div class="carrier-toggle">
+              <div class="carrier-opt" id="c-az" onclick="selectCarrier('AZ')"><div class="carrier-opt-name">Allianz</div><div class="carrier-opt-sub">Cap 12.25% · Min $100k DB</div></div>
+              <div class="carrier-opt" id="c-cl" onclick="selectCarrier('CL')"><div class="carrier-opt-name">Columbus Life</div><div class="carrier-opt-sub">Cap 11% · Min $25k DB</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">DB Calculator</div>
+            <div class="calc-box">
+              <div class="calc-row"><span class="calc-label">CSV / age / DB factor</span><span class="calc-val" id="c-info">—</span></div>
+              <div class="calc-result"><span>Est. DB at $0 premium</span><span id="c-db0">—</span></div>
+            </div>
+            <div style="margin-bottom:8px">
+              <label class="fl">Option 2 — additional annual premium ($)</label>
+              <input class="fi" id="opt2" placeholder="Auto-filled from current premium" oninput="recalcOptions()"/>
+              <div class="fi-note" id="opt2-note"></div>
+            </div>
+            <div>
+              <label class="fl">Option 3 — custom annual premium ($, optional)</label>
+              <input class="fi" id="opt3" placeholder="Leave blank to omit" oninput="recalcOptions()"/>
+            </div>
+            <div id="opt-preview" style="margin-top:10px;font-size:11px;color:#666"></div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="card"><div class="card-title">Disadvantages</div><div class="adv-list" id="dis-list"></div></div>
+          <div class="card"><div class="card-title">Advantages (auto-matched)</div><div class="adv-list" id="adv-list"></div></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-gold" onclick="goStep(4)">Generate One-Pager</button>
+          <button class="btn" onclick="goStep(2)">Back</button>
+        </div>
+      </div>
+
+      <!-- Step 4: One-Pager -->
+      <div id="s4" style="display:none">
+        <div class="steps">
+          <div class="step"><div class="step-dot done">✓</div><div class="step-label">Upload</div></div>
+          <div class="step"><div class="step-dot done">✓</div><div class="step-label">Review</div></div>
+          <div class="step"><div class="step-dot done">✓</div><div class="step-label">Options</div></div>
+          <div class="step"><div class="step-dot cur">4</div><div class="step-label cur">One-Pager</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">One-Pager Preview</div>
+          <div class="op-preview" id="op-preview-box"></div>
+          <div class="btn-row">
+            <button class="btn btn-gold" onclick="downloadPDF()">Download PDF</button>
+            <button class="btn btn-primary" onclick="saveCase()">Save to Pipeline</button>
+            <button class="btn" onclick="goStep(3)">Back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASES PAGE -->
+    <div class="page" id="page-cases">
+      <div class="page-title">Saved Cases</div>
+      <div class="page-sub">All completed analyses — click any case to view or download</div>
+      <div class="card">
+        <table class="cases-table">
+          <thead><tr><th>Client</th><th>Agent</th><th>Date</th><th>Carrier</th><th>CSV</th><th>Lead Source</th><th>Stage</th><th>Result</th><th>Notes</th><th>Actions</th></tr></thead>
+          <tbody id="cases-tbody"></tbody>
+        </table>
+        <div id="cases-empty" style="text-align:center;padding:30px;color:#aaa;font-size:13px;display:none">No saved cases yet. Complete an analysis to save it here.</div>
+      </div>
+    </div>
+
+    <!-- PIPELINE PAGE -->
+    <div class="page" id="page-pipeline">
+      <div class="page-title">1035 Pipeline</div>
+      <div class="page-sub">Track every case from analysis to application</div>
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-label">Active cases</div><div class="stat-value" id="pipe-active">0</div></div>
+        <div class="stat-card"><div class="stat-label">Apps submitted (all time)</div><div class="stat-value" id="pipe-submitted">0</div></div>
+        <div class="stat-card"><div class="stat-label">Conversion rate</div><div class="stat-value" id="pipe-rate">—</div></div>
+      </div>
+      <div class="card" style="padding:14px 10px">
+        <div class="pipeline-wrap">
+          <div class="pipeline-stages" id="pipeline-board"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD PAGE -->
+    <div class="page" id="page-leaderboard">
+      <div class="page-title">Agent Leaderboard — 2026 YTD</div>
+      <div class="page-sub" id="lb-sub">As of March 31, 2026 · 279 total reviews · 65 active agents</div>
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-label">Total reviews YTD</div><div class="stat-value" id="lb-total">279</div></div>
+        <div class="stat-card"><div class="stat-label">Active agents</div><div class="stat-value" id="lb-agents">65</div></div>
+        <div class="stat-card"><div class="stat-label">Leader</div><div class="stat-value" style="font-size:14px" id="lb-leader">Shea, Kevin</div></div>
+      </div>
+      <div class="card">
+        <input class="lb-search" placeholder="Search agent name..." oninput="filterLB(this.value)" id="lb-search-input"/>
+        <table class="lb-table"><thead><tr><th>#</th><th>Agent</th><th>Sub-agent</th><th>Reviews</th><th>Activity</th></tr></thead>
+        <tbody id="lb-body"></tbody></table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PIPELINE STAGE MODAL -->
+<div class="modal-overlay" id="stage-modal">
+  <div class="modal">
+    <div class="modal-close" onclick="closeModal()">×</div>
+    <div class="modal-title" id="modal-client-name">Update Case</div>
+    <div class="modal-sub" id="modal-case-info"></div>
+    <label class="fl">Move to stage:</label>
+    <select class="stage-select" id="modal-stage-select">
+      <option value="1">1. Sent for Analysis</option>
+      <option value="2">2. Analysis Provided</option>
+      <option value="3">3. Appointment Scheduled</option>
+      <option value="4">4. 1035 Presented</option>
+      <option value="5">5. 2nd Meeting Needed</option>
+      <option value="6">6. Application Submitted</option>
+      <option value="7">7. Not Submitted</option>
+    </select>
+    <div id="modal-reason-wrap" style="display:none">
+      <label class="fl">Reason not submitted:</label>
+      <textarea class="modal-note-area" id="modal-reason" placeholder="e.g. Client decided to keep existing policy..."></textarea>
+    </div>
+    <label class="fl">Lead source:</label>
+    <select class="stage-select" id="modal-lead-source">
+      <option value="">— Select —</option>
+      <option value="Annual Review">Annual Review</option>
+      <option value="Delivery">Delivery</option>
+      <option value="Existing Client">Existing Client</option>
+      <option value="CV Email Blast">CV Email Blast</option>
+      <option value="New Prospect - First Meeting">New Prospect - First Meeting</option>
+      <option value="New Client - From Seminar">New Client - From Seminar</option>
+    </select>
+    <label class="fl">Result:</label>
+    <select class="stage-select" id="modal-result">
+      <option value="">— Select —</option>
+      <option value="In Force">In Force</option>
+      <option value="Cancelled">Cancelled</option>
+      <option value="Declined">Declined</option>
+    </select>
+    <label class="fl">Case notes:</label>
+    <textarea class="modal-note-area" id="modal-case-notes" placeholder="Any additional notes on this case..."></textarea>
+    <label class="fl">Internal notes (FMO only):</label>
+    <textarea class="modal-note-area" id="modal-notes" placeholder="Internal FMO notes..."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveStageChange()">Save</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONSTANTS ───
+// Auth constants moved to server
+
+const DB_FACTORS = [[0,15,5],[16,20,4.75],[21,29,4.5],[30,39,4],[40,44,3.75],[45,49,3.5],[50,54,3],[55,59,2.5],[60,64,2.25],[65,69,2],[70,73,1.75],[74,75,1.65],[76,200,1.5]];
+const AZ_MIN = [[0,45,25000],[46,59,50000],[60,69,75000],[70,72,100000],[73,90,125000]];
+const CL_MIN = [[0,45,10000],[46,59,12000],[60,69,15000],[70,79,25000]];
+const STAGE_NAMES = ['','Sent for Analysis','Analysis Provided','Appt Scheduled','1035 Presented','2nd Meeting Needed','App Submitted','Not Submitted'];
+const STAGE_CLASSES = ['','stage-1','stage-2','stage-3','stage-4','stage-5','stage-6','stage-7'];
+
+const LB_BASE = [["Shea, Kevin","",24],["Messina, Nick","",16],["Barnett, Kurtis","",15],["Heath, Slade","Caleb Heath",14],["Mundt, Justin","",11],["Singer, Peter","",10],["Grady, Brendan","Sean Flynn",9],["Campbell, Rocky","",8],["Larson, Arika","",7],["Jacobsohn, Mark","",7],["Orfin, Dan","",7],["Rigano, Nick","Mikayla Carrah",7],["Weiss, Marty","",7],["Westall, Eric","Zak Moore",6],["Loveland, Tom","Jake Perriera",6],["Ingier, Henry","",6],["Retallick, Don","",6],["Shyman, Steve","",6],["McCambell, Kim","Chantal Smith",5],["Deutsch, Mary","",5],["Caiati, Dominick","",5],["Brumfield, Lisa","",5],["Dietz, Jesse","Alison Walker",5],["Bergeson, Amy","",4],["Walker, Matt","Lavely, Sal",4],["Baldwin, Steve","",4],["Caulkins, Heather","Malaya Brockway",4],["Campbell, Daniel","Brett Anderson",4],["Mullis, Chris","",3],["Grafrath, Katie","",3],["Hall, Ryan","",3],["Grimes, Dustin","",3],["Blackwell, Lisa","Devonte Wilson",3],["Pomarico, Tony","",3],["Gayanyan, Nvard","",2],["Villella, Judy","",2],["Summerlin, Stacy","Keith Summerlin",2],["Weinberg, Rhonda","",2],["Turney, Scott","Justin Turney",2],["Rogers, Hayward","",2],["Pieracini, Andrew","Kim Allen",2],["Olson, John","",2],["Erb, Vince","Lisa Chandler",2],["Gibbs, Bo","Ryan Baumann",2],["Baun, Jean","",2],["McNinch, Joel","",2],["Miller, Matt","",2],["Allen, Kim","",1],["Campbell, Susan","",1],["Lau, Phil","",1],["Jacobs, Breck","",1],["Hoffman, Pat & Schwann, Sid","",1],["Holland, Steve","",1],["Henderson, Pamala","",1],["Goehl, Steve","",1],["Davis, JC","",1],["Fraga, Justin","",1],["Reising, John","",1],["Rael, Chris","",1],["Pang, Wendy","",1],["Linnehan, Ryan","",1],["Liggett, Hombre","",1],["Sims, Ben","",1],["Spivy, Randy","",1],["Watson, Tom","",1]];
+
+// ─── STATE ───
+let currentUser = null;
+let currentRole = null;
+let selectedCarrier = 'AZ';
+let curDis = [], curAdv = [];
+let uploadedFiles = [];
+let modalCaseId = null;
+
+// ─── API HELPERS ───
+let casesCache = [];
+function getToken() { return localStorage.getItem('iul_token'); }
+function setToken(t) { localStorage.setItem('iul_token', t); }
+function clearToken() { localStorage.removeItem('iul_token'); }
+
+async function apiGet(path) {
+  const res = await fetch(path, { headers: { 'Authorization': 'Bearer ' + getToken() } });
+  return res.json();
+}
+async function apiPost(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+async function apiPut(path, body) {
+  const res = await fetch(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+async function fetchCases() {
+  const data = await apiGet('/api/cases');
+  casesCache = Array.isArray(data) ? data : [];
+  return casesCache;
+}
+
+// ─── AUTH ───
+function setAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('on', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('tab-login').style.display = tab==='login'?'':'none';
+  document.getElementById('tab-register').style.display = tab==='register'?'':'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pw = document.getElementById('login-pw').value;
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  const res = await apiPost('/api/login', { email, password: pw });
+  if (res.token) {
+    setToken(res.token);
+    currentUser = res.name; currentRole = res.role;
+    launchApp();
+  } else {
+    err.textContent = res.error || 'Invalid email or password';
+    err.style.display = 'block';
+  }
+}
+
+async function doRegister() {
+  const code = document.getElementById('reg-code').value.trim();
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pw = document.getElementById('reg-pw').value;
+  const err = document.getElementById('reg-err');
+  err.style.display = 'none';
+  const res = await apiPost('/api/register', { code, name, email, password: pw });
+  if (res.token) {
+    setToken(res.token);
+    currentUser = res.name; currentRole = res.role;
+    launchApp();
+  } else {
+    err.textContent = res.error || 'Registration failed.';
+    err.style.display = 'block';
+  }
+}
+
+function doLogout() {
+  currentUser = null; currentRole = null;
+  clearToken();
+  casesCache = [];
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pw').value = '';
+}
+
+function launchApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('nav-user-label').textContent = currentUser + (currentRole==='fmo'?' (FMO)':'');
+  if (currentRole === 'agent') {
+    document.getElementById('nav-analysis').style.display = 'none';
+  }
+  updateSlots();
+  updateFlags();
+  showPage('analysis', document.getElementById('nav-analysis'));
+  if (currentRole === 'agent') showPage('pipeline', document.getElementById('nav-pipeline'));
+}
+
+// ─── NAVIGATION ───
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('on'));
+  const pg = document.getElementById('page-' + id);
+  if (pg) pg.classList.add('on');
+  if (el) el.classList.add('on');
+  if (id === 'leaderboard') buildLeaderboard(LB_BASE);
+  if (id === 'pipeline') buildPipeline();
+  if (id === 'cases') buildCasesTable();
+}
+
+// ─── UPLOAD SLOTS ───
+function updateSlots() {
+  const n = parseInt(document.getElementById('f-pc')?.value || 1);
+  uploadedFiles = [];
+  let h = '';
+  for (let i = 1; i <= n; i++) {
+    h += `<div style="margin-bottom:10px">
+      <label class="fl">Policy ${i} document</label>
+      <div class="upload-zone" id="uz-${i}">
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFile(${i}, this)"/>
+        <div class="upload-label">Drop statement or in-force illustration here</div>
+        <div class="upload-sub">PDF · JPG · PNG — up to 20MB</div>
+        <div class="upload-done" id="ud-${i}"></div>
+      </div>
+    </div>`;
+  }
+  document.getElementById('upload-slots').innerHTML = h;
+}
+
+function handleFile(slot, input) {
+  if (input.files[0]) {
+    uploadedFiles[slot] = input.files[0];
+    document.getElementById('ud-' + slot).textContent = '✓ ' + input.files[0].name;
+  }
+}
+
+// ─── AI ANALYSIS ───
+async function runAIAnalysis() {
+  const age = document.getElementById('f-age').value;
+  const hasFile = Object.keys(uploadedFiles).length > 0;
+  if (!hasFile) { showToast('Please upload at least one document first, or click "Enter manually"'); return; }
+
+  const loader = document.getElementById('ai-loader');
+  loader.classList.add('on');
+  document.getElementById('ai-loader-text').textContent = 'Reading document with AI...';
+
+  try {
+    const content = [];
+    const files = Object.values(uploadedFiles);
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (f.type === 'application/pdf') {
+        document.getElementById('ai-loader-text').textContent = `Converting PDF ${i+1} to images...`;
+        const pageImages = await pdfToImages(f);
+        for (const imgData of pageImages) {
+          content.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: imgData } });
+        }
+      } else {
+        const b64 = await fileToBase64(f);
+        content.push({ type: 'image', source: { type: 'base64', media_type: f.type, data: b64 } });
+      }
+    }
+    content.push({
+      type: 'text',
+      text: `You are an expert at reading life insurance policy annual statements and in-force illustrations. Extract the fields below and return ONLY a raw JSON object — no markdown, no explanation, no backticks.
+
+POLICY TYPE DETECTION — choose one of exactly these four values:
+- "Variable Life": look for words like variable, VUL, variable universal life, separate account, sub-accounts, investment options, market-linked, fund performance. If you see any of these, it is Variable Life.
+- "Indexed Universal Life": look for IUL, indexed universal life, S&P 500 cap, index crediting, floor, participation rate.
+- "Whole Life": look for whole life, participating, dividend, guaranteed cash value table.
+- "Universal Life": look for universal life, UL, flexible premium, current assumption. Use this only if none of the above match.
+
+FIELDS TO EXTRACT:
+
+policyType: (string) One of the four values above. Default to "Variable Life" if the document mentions separate accounts, sub-accounts, or investment options.
+
+carrier: (string) The insurance company name. Look in the header, letterhead, or "issued by" field.
+
+csv: (number) The current cash value or surrender value. Look for labels like: Account Value, Accumulation Value, Cash Surrender Value, Net Surrender Value, Policy Value, Fund Value, Total Account Value. If both accumulation and surrender values are shown, use the LOWER (surrender) value. Return digits only, no $ or commas.
+
+db: (number) The current death benefit or face amount. Look for: Death Benefit, Face Amount, Total Death Benefit, Coverage Amount, Insurance Amount. Return digits only.
+
+annualPremium: (number) The annual or annualized premium. Look for: Annual Premium, Planned Premium, Annualized Premium, Scheduled Premium, Modal Premium (then annualize it — multiply monthly by 12, quarterly by 4, semi-annual by 2). Return digits only.
+
+yearsInForce: (number) How many years the policy has been active. Look for: Policy Year, Years In Force, Issue Date (then calculate years from issue date to today). Return a number only.
+
+totalPremiumsPaid: (number) Total premiums paid to date. Look for: Cost Basis, Total Premiums Paid, Cumulative Premiums, Premium Outlay. IMPORTANT: If this field is NOT explicitly listed anywhere in the document, calculate it as: annualPremium × yearsInForce. Never return null for this field if you have annualPremium and yearsInForce. Return digits only.
+
+loanRate: (string or number) The policy loan interest rate. Look for: Loan Rate, Loan Interest Rate, Policy Loan Rate. If not listed anywhere in the document, return the string "not listed". Never return null.
+
+capRate: (number or string) For IUL policies only: the S&P 500 cap rate or index cap. Return as a number (e.g. 9.5). For all other policy types return "n/a".
+
+lapseInfo: (string) Any lapse projection — look for: Lapse Age, Policy Lapses At Age, Lapse Year, Projected Lapse. If not shown return "not shown".
+
+hasCI: (string) Return "yes" if the document lists any of: Chronic Illness Rider, Accelerated Death Benefit, LTC Rider, Long-Term Care Rider, Terminal Illness Rider, Critical Illness Rider. Otherwise return "no".
+
+notes: (string) Any other relevant observations, warnings, or unusual features of the policy.
+
+CRITICAL RULES:
+- Never return null for csv, db, annualPremium, loanRate, or hasCI — use "not listed" if truly absent.
+- For totalPremiumsPaid: always calculate annualPremium × yearsInForce if not explicitly stated.
+- If the document shows multiple policies, add up the values and note this in notes.
+- Return ONLY the JSON object. No explanation, no markdown.`
+    });
+
+    document.getElementById('ai-loader-text').textContent = 'Extracting policy data...';
+
+    const response = await fetch('/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content }]
+      })
+    });
+
+    const data = await response.json();
+    console.log('API response status:', response.status);
+    console.log('API response data:', JSON.stringify(data).slice(0, 500));
+    if (data.error) throw new Error('API error: ' + data.error.message);
+    if (!data.content || !data.content.length) throw new Error('Empty API response — check API key or billing');
+    const raw = data.content?.map(c => c.text || '').join('');
+    console.log('Raw AI output:', raw.slice(0, 300));
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    loader.classList.remove('on');
+    populateExtractedFields(parsed);
+    goStep(2);
+    showToast('AI extraction complete — please verify the fields below');
+
+  } catch (err) {
+    loader.classList.remove('on');
+    console.error('AI parse error:', err);
+    showToast('Error: ' + (err.message || 'Unknown error') + ' — check browser console (F12) for details');
+    goStep(2);
+  }
+}
+
+async function pdfToImages(file) {
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const images = [];
+  const maxPages = Math.min(pdf.numPages, 4);
+  for (let p = 1; p <= maxPages; p++) {
+    const page = await pdf.getPage(p);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const dataUrl = canvas.toDataURL('image/png');
+    images.push(dataUrl.split(',')[1]);
+  }
+  return images;
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+function populateExtractedFields(d) {
+  if (!d) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== null && val !== undefined) el.value = val; };
+  const typeMap = { 'whole life': 'Whole Life', 'variable': 'Variable Life', 'universal life': 'Universal Life', 'indexed': 'Indexed Universal Life' };
+  if (d.policyType) {
+    const sel = document.getElementById('r-type');
+    const lower = d.policyType.toLowerCase();
+    for (const [k, v] of Object.entries(typeMap)) {
+      if (lower.includes(k)) { sel.value = v; break; }
+    }
+  }
+  set('r-carrier', d.carrier);
+  set('r-csv', d.csv);
+  set('r-db', d.db);
+  set('r-prem', d.annualPremium);
+  set('r-totprem', d.totalPremiumsPaid);
+  set('r-years', d.yearsInForce);
+  set('r-loan', d.loanRate);
+  set('r-cap', d.capRate);
+  set('r-lapse', d.lapseInfo);
+  if (d.hasCI) document.getElementById('r-ci').value = d.hasCI;
+  updateFlags();
+  syncOpt2();
+}
+
+// ─── STEP NAVIGATION ───
+function goStep(n) {
+  [1, 2, 3, 4].forEach(i => document.getElementById('s' + i).style.display = i === n ? '' : 'none');
+  if (n === 2) updateFlags();
+  if (n === 3) { syncOpt2(); renderCarrierRec(); recalcOptions(); buildAdvDis(); }
+  if (n === 4) buildOnePager();
+}
+
+// ─── DB FACTOR / CARRIER LOGIC ───
+function getDBFactor(age) { for (const [l,h,f] of DB_FACTORS) if (age>=l&&age<=h) return f; return null; }
+function getMin(table, age) { for (const [l,h,m] of table) if (age>=l&&age<=h) return m; return null; }
+function fmt$(n) { return '$' + Math.round(n).toLocaleString(); }
+
+function decideCarrier(age, funded) {
+  if (!age) return { c: 'AZ', r: 'Enter client age to get carrier recommendation.', st: 'ok' };
+  if (age > 80) return { c: 'none', r: 'Client age exceeds all carrier maximum issue ages (Allianz max 80, Columbus Life max 79).', st: 'er' };
+  if (age === 80) {
+    const m = getMin(AZ_MIN, age);
+    if (m && funded >= m) return { c: 'AZ', r: 'Age 80 — Allianz only (Columbus Life max age is 79).', st: 'ok' };
+    const tu = m ? Math.ceil((m - funded) / 5) : 0;
+    return { c: 'AZ', r: `Age 80 — Allianz only. Need ${fmt$(tu)}/yr x5 to meet ${fmt$(m)} minimum.`, st: 'wn' };
+  }
+  if (age >= 76) {
+    const m = getMin(CL_MIN, age);
+    if (m && funded >= m) return { c: 'CL', r: 'Ages 76–79 — Columbus Life only. Allianz does not offer the CI rider at issue age 76+.', st: 'ok' };
+    const tu = m ? Math.ceil((m - funded) / 5) : 0;
+    return { c: 'CL', r: `Ages 76–79 — Columbus Life only (Allianz drops CI rider at 76). Need ${fmt$(tu)}/yr x5 to meet CL minimum ${fmt$(m||0)}.`, st: 'wn' };
+  }
+  const azM = getMin(AZ_MIN, age), clM = getMin(CL_MIN, age), ff = getDBFactor(age), db0 = ff ? funded * ff : 0;
+  if (azM && funded >= azM && db0 >= 100000) return { c: 'AZ', r: `Allianz recommended — total funded ${fmt$(funded)} meets the ${fmt$(azM)} minimum for age ${age}, and estimated DB ${fmt$(db0)} exceeds the $100,000 minimum.`, st: 'ok' };
+  if (clM && funded >= clM) {
+    let r = 'Columbus Life recommended — ';
+    r += azM && funded < azM ? `total funded ${fmt$(funded)} is below Allianz minimum ${fmt$(azM)} for age ${age}. ` : `estimated DB ${fmt$(db0)} is below Allianz $100k minimum. `;
+    r += `Meets Columbus Life minimum ${fmt$(clM)}.`;
+    return { c: 'CL', r, st: 'ok' };
+  }
+  const azTU = azM ? Math.ceil((azM - funded) / 5) : 0, clTU = clM ? Math.ceil((clM - funded) / 5) : 0;
+  return { c: 'both', r: `Total funded ${fmt$(funded)} is below both carrier minimums for age ${age}. Additional annual premium required:`, st: 'bt', azM, azTU, clM, clTU };
+}
+
+function renderCarrierRec() {
+  const age = parseInt(document.getElementById('f-age')?.value) || 0;
+  const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
+  const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
+  const funded = csv + p2 * 5;
+  const d = decideCarrier(age, funded);
+  selectedCarrier = d.c === 'both' || d.c === 'none' ? 'AZ' : d.c;
+  updateCarrierToggle();
+  const cls = d.st === 'ok' ? 'ok' : d.st === 'er' ? 'er' : 'wn';
+  const bc = d.c === 'CL' ? 'cl' : d.c === 'both' || d.c === 'none' ? 'wn' : 'az';
+  const bn = d.c === 'CL' ? 'Columbus Life' : d.c === 'both' ? 'Additional premium required' : d.c === 'none' ? 'Ineligible' : 'Allianz';
+  let ex = '';
+  if (d.st === 'bt') ex = `<div style="display:flex;gap:7px;margin-top:8px">
+    <div style="flex:1;padding:8px;background:#f8f8f8;border-radius:8px;font-size:11px"><div style="font-weight:600;margin-bottom:2px">Allianz — ${fmt$(d.azM)} min</div><div style="color:#888">Need ${fmt$(d.azTU)}/yr x5</div></div>
+    <div style="flex:1;padding:8px;background:#f8f8f8;border-radius:8px;font-size:11px"><div style="font-weight:600;margin-bottom:2px">Columbus Life — ${fmt$(d.clM)} min</div><div style="color:#888">Need ${fmt$(d.clTU)}/yr x5</div></div>
+  </div>`;
+  document.getElementById('carrier-rec-box').innerHTML = `<div class="carrier-rec ${cls}"><span class="carrier-badge ${bc}">${bn}${d.st==='ok'?' ✓':''}</span><div class="carrier-reason" style="margin-top:4px">${d.r}</div>${ex}</div>`;
+}
+
+function updateCarrierToggle() {
+  document.getElementById('c-az').className = 'carrier-opt' + (selectedCarrier === 'AZ' ? ' sel' : '');
+  document.getElementById('c-cl').className = 'carrier-opt' + (selectedCarrier === 'CL' ? ' sel' : '');
+}
+
+function selectCarrier(c) { selectedCarrier = c; updateCarrierToggle(); recalcOptions(); buildAdvDis(); }
+
+function syncOpt2() {
+  const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
+  const o2 = document.getElementById('opt2');
+  if (o2 && pr > 0 && !o2.value) {
+    o2.value = pr;
+    document.getElementById('opt2-note').textContent = 'Auto-filled from current annualized premium';
+    recalcOptions();
+  }
+}
+
+function recalcOptions() {
+  const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
+  const age = parseInt(document.getElementById('f-age')?.value) || 0;
+  const f = getDBFactor(age);
+  const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
+  const p3 = parseFloat(document.getElementById('opt3')?.value) || 0;
+  document.getElementById('c-info').textContent = fmt$(csv) + ' / age ' + (age || '?') + ' / ' + (f ? f + 'x' : '?');
+  const db0 = f ? Math.round(csv * f) : null;
+  document.getElementById('c-db0').textContent = db0 ? fmt$(db0) : '—';
+  const cl = selectedCarrier === 'AZ' ? 'AZ' : 'CL';
+  const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
+  const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
+  let h = `<div style="padding:8px;background:#f8f8f8;border-radius:8px">`;
+  h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 1: </span>(${cl}) 1035 ${fmt$(csv)}, $0 premiums, ${db0 ? fmt$(db0) : '[DB]'} DB</div>`;
+  if (p2) h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 2: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${db2 ? fmt$(db2) : '[DB]'} DB</div>`;
+  if (p3) h += `<div><span style="color:#888">Opt 3: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5, ${db3 ? fmt$(db3) : '[DB]'} DB</div>`;
+  document.getElementById('opt-preview').innerHTML = h + '</div>';
+  renderCarrierRec();
+}
+
+// ─── FLAGS ───
+function updateFlags() {
+  const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
+  const db = parseFloat(document.getElementById('r-db')?.value) || 0;
+  const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
+  const tp = parseFloat(document.getElementById('r-totprem')?.value) || 0;
+  const yr = parseFloat(document.getElementById('r-years')?.value) || 1;
+  const loan = (document.getElementById('r-loan')?.value || '').toLowerCase().trim();
+  const cap = (document.getElementById('r-cap')?.value || '').toLowerCase().trim();
+  const lapse = (document.getElementById('r-lapse')?.value || '').toLowerCase().trim();
+  const ci = document.getElementById('r-ci')?.value || 'no';
+  const type = document.getElementById('r-type')?.value || 'Whole Life';
+  const loanNum = parseFloat(loan), capNum = parseFloat(cap);
+  const ror = tp && yr ? (Math.pow(csv / tp, 1 / yr) - 1) * 100 : null;
+  const age = parseInt(document.getElementById('f-age')?.value) || 0;
+  const f = getDBFactor(age);
+  const projDB0 = f && csv ? csv * f : 0;
+  const flags = [];
+
+  if (lapse && !['not shown', 'none', 'n/a', ''].includes(lapse))
+    flags.push({ b: 1, t: `Policy will lapse: ${lapse}`, s: 'Lapse date/age found in document' });
+  if (ci === 'no')
+    flags.push({ b: 1, t: 'Cannot access DB for living benefits / chronic illness needs', s: 'No chronic illness or LTC rider found on policy' });
+  const isUnderfunded = pr > 0 && db > 0 && (db / pr) > 20;
+  if (isUnderfunded && projDB0 <= db)
+    flags.push({ b: 1, t: 'Policy is under-funded: DB is high vs. low premiums', s: 'High DB-to-premium ratio indicates minimal funding' });
+  if (ror !== null)
+    flags.push({ b: ror < 4 ? 1 : 0, t: `${ror < 0 ? 'Negative' : 'Low'} ROR: ${fmt$(tp)} total premiums vs. ${fmt$(csv)} CV, after ${Math.round(yr)} years = ${ror.toFixed(2)}% net annual ROR`, s: 'Calculated from extracted data' });
+  if (!isNaN(loanNum) && loanNum > 3)
+    flags.push({ b: 1, t: `High loan rate: ${loanNum}%`, s: 'Exceeds 3% threshold' });
+  if (type === 'Indexed Universal Life' && !isNaN(capNum) && capNum < 10)
+    flags.push({ b: 1, t: `Low cap rate: S&P 500 cap is ${capNum}%`, s: 'Below 10% threshold' });
+  if (type === 'Variable Life')
+    flags.push({ b: 1, t: 'Market risk: CV can lose money if the market goes down', s: 'Variable policy — no floor protection' });
+  if (!flags.some(f => f.b))
+    flags.push({ b: 0, t: 'No major disadvantages flagged', s: 'Review fields above and adjust if needed' });
+
+  curDis = flags.filter(f => f.b).map(f => f.t);
+  document.getElementById('flag-list').innerHTML = flags.map(f => `
+    <div class="flag-item ${f.b ? 'bad' : 'good'}">
+      <div class="flag-dot ${f.b ? 'r' : 'g'}">${f.b ? '✕' : '✓'}</div>
+      <div><div class="flag-text">${f.t}</div><div class="flag-sub">${f.s}</div></div>
+    </div>`).join('');
+}
+
+// ─── ADV/DIS ───
+function buildAdvDis() {
+  const cap = selectedCarrier === 'AZ' ? '12.25%' : '11%';
+  const m = {
+    lapse: 'Policy lasts and grows throughout lifetime, instead of lapsing.',
+    ci: 'Access to DB for living benefits / chronic illness needs.',
+    fund: 'Policy is max-funded to minimize fees and maximize growth.',
+    ror: 'Potential for higher ROR: 4–7% net of costs, over time.',
+    loan: 'Lower loan rate: 1% years 1–10; 0% years 11+.',
+    caps: `Higher caps: S&P 500 cap is ${cap}.`,
+    mkt: 'Eliminate market risk while maintaining market-like upside.'
+  };
+  const adv = ['Bigger DB with or without premium payments.'];
+  curDis.forEach(d => {
+    const dl = d.toLowerCase();
+    if (dl.includes('lapse')) adv.push(m.lapse);
+    if (dl.includes('chronic') || dl.includes('living')) adv.push(m.ci);
+    if (dl.includes('under-fund')) adv.push(m.fund);
+    if (dl.includes('ror') || dl.includes('rate of return')) adv.push(m.ror);
+    if (dl.includes('loan rate')) adv.push(m.loan);
+    if (dl.includes('cap rate')) adv.push(m.caps);
+    if (dl.includes('market risk')) adv.push(m.mkt);
+  });
+  curAdv = [...new Set(adv)];
+  document.getElementById('dis-list').innerHTML = curDis.map(d => `<div class="adv-item d">${d}</div>`).join('') || '<div style="font-size:12px;color:#888">None flagged</div>';
+  document.getElementById('adv-list').innerHTML = curAdv.map(a => `<div class="adv-item a">${a}</div>`).join('');
+}
+
+// ─── ONE-PAGER ───
+function buildOnePager() {
+  const client = document.getElementById('f-client').value || '(Client Name)';
+  const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
+  const db = parseFloat(document.getElementById('r-db')?.value) || 0;
+  const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
+  const age = parseInt(document.getElementById('f-age')?.value) || 0;
+  const f = getDBFactor(age), c = selectedCarrier === 'AZ' ? 'AZ' : 'CL';
+  const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
+  const p3 = parseFloat(document.getElementById('opt3')?.value) || 0;
+  const db0 = f ? Math.round(csv * f) : null;
+  const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
+  const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
+  const o1 = `(${c}) 1035 ${fmt$(csv)}, $0 premiums, ${db0 ? fmt$(db0) : '[DB]'} DB`;
+  const o2 = p2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${db2 ? fmt$(db2) : '[DB]'} DB` : '';
+  const o3 = db3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5, ${fmt$(db3)} DB` : '';
+  document.getElementById('op-preview-box').innerHTML = `
+    <div class="op-header">
+      <div>
+        <div class="op-client-name">${client}</div><br>
+        <div class="op-title-big">CASH VALUE</div>
+        <div class="op-title-sub">Life Insurance Analysis</div>
+      </div>
+      <div class="op-contact-box">
+        <div class="op-contact-head">CONTACT INFO</div>
+        <div class="op-contact-row">📞 (Phone Number)</div>
+        <div class="op-contact-row">✉ (Email Address)</div>
+        <div class="op-contact-row">🌐 (Website)</div>
+      </div>
+    </div>
+    <div class="op-body">
+      <div class="op-col">
+        <div class="op-col-head">CURRENT POLICY</div>
+        <div class="op-field"><div class="op-field-label">Accumulation / Surrender Value:</div><div class="op-field-value">${fmt$(csv)}</div></div>
+        <div class="op-field"><div class="op-field-label">Death Benefit:</div><div class="op-field-value">${fmt$(db)}</div></div>
+        <div class="op-field"><div class="op-field-label">Annualized Premiums:</div><div class="op-field-value">${pr ? fmt$(pr) : '$0'}</div></div>
+        <div class="op-section-label">Disadvantages:</div>
+        <ol class="op-list">${curDis.map(d => `<li>${d}</li>`).join('')}</ol>
+      </div>
+      <div class="op-col op-col-right">
+        <div class="op-col-head">1035 TO NEW POLICY</div>
+        <div class="op-field"><div class="op-field-label">Option 1:</div><div class="op-field-value">${o1}</div></div>
+        <div class="op-field"><div class="op-field-label">Option 2: <em style="font-weight:400;color:#aaa">(if applicable)</em></div><div class="op-field-value">${o2 || '—'}</div></div>
+        <div class="op-field"><div class="op-field-label">Option 3: <em style="font-weight:400;color:#aaa">(if applicable)</em></div><div class="op-field-value">${o3 || '—'}</div></div>
+        <div class="op-section-label">Advantages:</div>
+        <ol class="op-list">${curAdv.map(a => `<li>${a}</li>`).join('')}</ol>
+      </div>
+    </div>
+    <div class="op-footer">By contacting <span class="op-fillable">_________________________ (Agent License #)</span> you may be offered information regarding the purchase of insurance products, including fixed index annuities and life insurance. For agent use only. This is not an illustration, guarantee of performance, or an offer of insurance. This is an educational tool and purely hypothetical. Values are subject to change based on underwriting results and are not guaranteed. By starting a new policy, surrender charges, premium loads and policy charges may apply. Disadvantages of a new policy may not be included in the details above.</div>`;
+}
+
+// ─── PDF DOWNLOAD ───
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+  const W = 792, H = 612;
+  const NAVY = [26, 44, 78], GOLD = [201, 168, 76], WHITE = [255,255,255], LGRAY = [240,240,240], DGRAY = [80,80,80], BLACK = [26,26,26];
+
+  const client = document.getElementById('f-client').value || '(Client Name)';
+  const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
+  const db = parseFloat(document.getElementById('r-db')?.value) || 0;
+  const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
+  const age = parseInt(document.getElementById('f-age')?.value) || 0;
+  const f = getDBFactor(age), c = selectedCarrier === 'AZ' ? 'AZ' : 'CL';
+  const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
+  const p3 = parseFloat(document.getElementById('opt3')?.value) || 0;
+  const db0 = f ? Math.round(csv * f) : null;
+  const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
+  const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
+  const o1 = `(${c}) 1035 ${fmt$(csv)}, $0 premiums, ${db0 ? fmt$(db0) : '[DB]'} DB`;
+  const o2 = p2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${db2 ? fmt$(db2) : '[DB]'} DB` : '';
+  const o3 = db3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5, ${fmt$(db3)} DB` : '';
+
+  // ── HEADER ──
+  const midX = W / 2;
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, W, 150, 'F');
+
+  // Client name box
+  doc.setDrawColor(255,255,255);
+  doc.setLineWidth(0.75);
+  doc.rect(30, 22, 220, 20);
+  doc.setTextColor(...WHITE);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text(client, 36, 36);
+
+  // CASH VALUE title
+  doc.setFontSize(26);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CASH VALUE', 30, 80);
+
+  // Subtitle
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(210, 210, 210);
+  doc.text('Life Insurance Analysis', 30, 98);
+
+  // Contact info box (white card top-right)
+  doc.setFillColor(...WHITE);
+  doc.roundedRect(530, 14, 240, 122, 3, 3, 'F');
+  doc.setTextColor(...NAVY);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CONTACT INFO', 542, 32);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DGRAY);
+  doc.setFontSize(9);
+  doc.text('📞  (Phone Number)', 542, 52);
+  doc.text('✉   (Email Address)', 542, 68);
+  doc.text('🌐  (Website)', 542, 84);
+
+  // ── COLUMN HEADERS ──
+  doc.setDrawColor(...LGRAY);
+  doc.setLineWidth(0.5);
+  doc.line(0, 150, W, 150);
+
+  // Left header
+  doc.setFillColor(245, 247, 250);
+  doc.rect(0, 150, midX, 28, 'F');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...NAVY);
+  doc.text('CURRENT POLICY', midX / 2, 169, { align: 'center' });
+
+  // Right header
+  doc.setFillColor(245, 247, 250);
+  doc.rect(midX, 150, midX, 28, 'F');
+  doc.text('1035 TO NEW POLICY', midX + midX / 2, 169, { align: 'center' });
+
+  // Vertical divider
+  doc.setDrawColor(...LGRAY);
+  doc.setLineWidth(0.5);
+  doc.line(midX, 150, midX, 535);
+  doc.line(0, 178, W, 178);
+
+  // ── FIELD HELPER ──
+  const PAD = 28;
+  const COL_W = midX - PAD * 2;
+
+  const fieldRow = (x, y, label, value) => {
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(140, 140, 140);
+    doc.text(label, x, y);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BLACK);
+    const lines = doc.splitTextToSize(value || '—', COL_W);
+    doc.text(lines, x, y + 13);
+    doc.setDrawColor(...LGRAY);
+    doc.setLineWidth(0.4);
+    doc.line(x, y + 17, x + COL_W, y + 17);
+    return y + 17 + (lines.length - 1) * 12;
+  };
+
+  // ── LEFT COLUMN ──
+  let ly = 196;
+  ly = fieldRow(PAD, ly, 'Accumulation / Surrender Value:', fmt$(csv)) + 12;
+  ly = fieldRow(PAD, ly, 'Death Benefit:', fmt$(db)) + 12;
+  ly = fieldRow(PAD, ly, 'Annualized Premiums:', pr ? fmt$(pr) : '$0') + 18;
+
+  // Disadvantages header
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...NAVY);
+  doc.text('Disadvantages:', PAD, ly);
+  ly += 14;
+
+  curDis.forEach((d, i) => {
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...GOLD);
+    doc.text(`${i + 1}.`, PAD, ly);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...BLACK);
+    const lines = doc.splitTextToSize(d, COL_W - 12);
+    doc.text(lines, PAD + 12, ly);
+    ly += lines.length * 11 + 5;
+  });
+
+  // ── RIGHT COLUMN ──
+  const rx = midX + PAD;
+  let ry = 196;
+  ry = fieldRow(rx, ry, 'Option 1:', o1) + 12;
+  ry = fieldRow(rx, ry, 'Option 2:' + (o2 ? '' : ' (if applicable)'), o2 || '—') + 12;
+  ry = fieldRow(rx, ry, 'Option 3:' + (o3 ? '' : ' (if applicable)'), o3 || '—') + 18;
+
+  // Advantages header
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...NAVY);
+  doc.text('Advantages:', rx, ry);
+  ry += 14;
+
+  curAdv.forEach((a, i) => {
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...GOLD);
+    doc.text(`${i + 1}.`, rx, ry);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...BLACK);
+    const lines = doc.splitTextToSize(a, COL_W - 12);
+    doc.text(lines, rx + 12, ry);
+    ry += lines.length * 11 + 5;
+  });
+
+  // ── FOOTER ──
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 538, W, 74, 'F');
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(160, 170, 185);
+  const disc = [
+    'By contacting _________________________________ (Agent License #) you may be offered information regarding the purchase of insurance products, including fixed index annuities and life insurance.',
+    'For agent use only. This is not an illustration, guarantee of performance, or an offer of insurance. This is an educational tool and purely hypothetical.',
+    'Values are subject to change based on underwriting results and are not guaranteed. By starting a new policy, surrender charges, premium loads and policy charges may apply.',
+    'Disadvantages of a new policy may not be included in the details above.'
+  ];
+  disc.forEach((line, i) => {
+    doc.text(line, W / 2, 552 + i * 11, { align: 'center' });
+  });
+
+  doc.save(`1035_Analysis_${client.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`);
+  showToast('PDF downloaded successfully');
+}
+
+// ─── SAVE CASE ───
+async function saveCase() {
+  const client = document.getElementById('f-client').value || 'Unknown Client';
+  const agent = document.getElementById('f-agent').value || currentUser;
+  const csv = document.getElementById('r-csv').value || '0';
+  const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  await apiPost('/api/cases', {
+    client, agent,
+    date: now,
+    carrier: selectedCarrier,
+    csv: parseFloat(csv) || 0,
+    dis: [...curDis],
+    adv: [...curAdv],
+    opt1: document.getElementById('opt-preview')?.innerText || ''
+  });
+  showToast(`Case saved for ${client} — view in Cases or Pipeline`);
+  goStep(1);
+  updateSlots();
+  document.getElementById('f-client').value = '';
+  document.getElementById('f-agent').value = '';
+  document.getElementById('f-age').value = '';
+}
+
+// ─── CASES TABLE ───
+async function buildCasesTable() {
+  const cases = await fetchCases();
+  const tbody = document.getElementById('cases-tbody');
+  const empty = document.getElementById('cases-empty');
+  if (!cases.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = cases.map(c => `
+    <tr>
+      <td style="font-weight:600">${c.client}</td>
+      <td>${c.agent}</td>
+      <td style="color:#888">${c.date}</td>
+      <td>${c.carrier}</td>
+      <td>${fmt$(c.csv)}</td>
+      <td style="font-size:11px">${c.leadSource||'—'}</td>
+      <td><span class="stage-pill ${STAGE_CLASSES[c.stage]}">${STAGE_NAMES[c.stage]}</span></td>
+      <td>${c.result ? `<span class="stage-pill ${c.result==='In Force'?'stage-4':c.result==='Cancelled'?'stage-7':'stage-6'}">${c.result}</span>` : '—'}</td>
+      <td style="max-width:140px;font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.caseNotes||'—'}</td>
+      <td>
+        <button class="btn btn-sm" onclick="openModal(${c.id})">Update</button>
+        <button class="btn btn-sm btn-gold" onclick="redownloadPDFFromCase(${c.id})" style="margin-left:4px">PDF</button>
+      </td>
+    </tr>`).join('');
+}
+
+function redownloadPDFFromCase(id) {
+  showToast('Re-download from saved case coming in next update');
+}
+
+// ─── PIPELINE ───
+async function buildPipeline() {
+  const cases = await fetchCases();
+  const active = cases.filter(c => c.stage < 6).length;
+  const submitted = cases.filter(c => c.stage === 6).length;
+  const notSubmitted = cases.filter(c => c.stage === 7).length;
+  const total = submitted + notSubmitted;
+  document.getElementById('pipe-active').textContent = active;
+  document.getElementById('pipe-submitted').textContent = submitted;
+  document.getElementById('pipe-rate').textContent = total ? Math.round(submitted / total * 100) + '%' : '—';
+
+  let html = '';
+  for (let s = 1; s <= 7; s++) {
+    const stageCases = cases.filter(c => c.stage === s);
+    const now2 = Date.now();
+    const cards = stageCases.map(c => {
+      const age = now2 - (c.stageUpdatedAt || c.createdAt || now2);
+      const hrs = age / 3600000;
+      const days = age / 86400000;
+      let overdue = false, overdueMsg = '';
+      if (s === 1 && hrs > 24) { overdue = true; overdueMsg = `Waiting ${Math.floor(hrs)}hrs`; }
+      if (s === 2 && days > 7) { overdue = true; overdueMsg = `Waiting ${Math.floor(days)} days`; }
+      return `<div class="pipeline-card${overdue?' overdue':''}" onclick="openModal(${c.id})">
+        <div class="pc-name">${c.client}</div>
+        <div class="pc-agent">${c.agent}</div>
+        <div class="pc-date">${c.date}</div>
+        ${overdue ? `<div class="pc-overdue">⚠ ${overdueMsg} — follow up needed</div>` : ''}
+        ${c.notes ? `<div class="pc-note">${c.notes.slice(0,40)}${c.notes.length>40?'…':''}</div>` : ''}
+      </div>`;
+    }).join('');
+    html += `<div class="stage-col">
+      <div class="stage-header ${s===1?'active':''}">${s}. ${STAGE_NAMES[s]}</div>
+      <div class="stage-cards">${cards || '<div style="padding:8px;font-size:10px;color:#ccc;text-align:center">—</div>'}</div>
+    </div>`;
+  }
+  document.getElementById('pipeline-board').innerHTML = html;
+}
+
+// ─── STAGE MODAL ───
+function openModal(id) {
+  modalCaseId = id;
+  const c = casesCache.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('modal-client-name').textContent = c.client;
+  document.getElementById('modal-case-info').textContent = `Agent: ${c.agent} · ${c.date} · ${fmt$(c.csv)} CSV`;
+  document.getElementById('modal-stage-select').value = c.stage;
+  document.getElementById('modal-notes').value = c.notes || '';
+  document.getElementById('modal-reason').value = c.reason || '';
+  document.getElementById('modal-lead-source').value = c.leadSource || '';
+  document.getElementById('modal-result').value = c.result || '';
+  document.getElementById('modal-case-notes').value = c.caseNotes || '';
+  toggleReasonField(c.stage);
+  document.getElementById('modal-stage-select').onchange = () => toggleReasonField(parseInt(document.getElementById('modal-stage-select').value));
+  document.getElementById('stage-modal').classList.add('on');
+}
+
+function toggleReasonField(stage) {
+  document.getElementById('modal-reason-wrap').style.display = stage === 7 ? '' : 'none';
+}
+
+function closeModal() {
+  document.getElementById('stage-modal').classList.remove('on');
+  modalCaseId = null;
+}
+
+async function saveStageChange() {
+  if (!modalCaseId) return;
+  await apiPut(`/api/cases/${modalCaseId}`, {
+    stage: parseInt(document.getElementById('modal-stage-select').value),
+    notes: document.getElementById('modal-notes').value,
+    reason: document.getElementById('modal-reason').value,
+    leadSource: document.getElementById('modal-lead-source')?.value || '',
+    result: document.getElementById('modal-result')?.value || '',
+    caseNotes: document.getElementById('modal-case-notes')?.value || ''
+  });
+  closeModal();
+  buildPipeline();
+  buildCasesTable();
+  showToast('Case updated');
+}
+
+// ─── LEADERBOARD ───
+async function buildLeaderboard(data) {
+  const cases = await fetchCases();
+  const merged = [...LB_BASE];
+  cases.forEach(c => {
+    const existing = merged.find(r => r[0].toLowerCase().includes(c.agent.split(' ')[0].toLowerCase()) || c.agent.toLowerCase().includes(r[0].split(',')[0].toLowerCase().trim()));
+    if (existing) existing[2]++;
+    else merged.push([c.agent, '', 1]);
+  });
+  merged.sort((a, b) => b[2] - a[2]);
+  const max = merged[0][2];
+  document.getElementById('lb-total').textContent = merged.reduce((s, r) => s + r[2], 0);
+  document.getElementById('lb-agents').textContent = merged.length;
+  document.getElementById('lb-leader').textContent = merged[0][0];
+  renderLB(merged, max, data);
+}
+
+function renderLB(data, max, filter) {
+  const medals = ['🥇', '🥈', '🥉'];
+  document.getElementById('lb-body').innerHTML = data.map((r, i) => `
+    <tr>
+      <td>${i < 3 ? `<span style="font-size:14px">${medals[i]}</span>` : `<span style="font-weight:600;color:#888">${i+1}</span>`}</td>
+      <td style="font-weight:600">${r[0]}</td>
+      <td class="lb-sub">${r[1] || '—'}</td>
+      <td><span class="lb-badge">${r[2]}</span></td>
+      <td><div class="lb-bar-wrap"><div class="lb-bar" style="width:${Math.round(r[2]/max*100)}%"></div></div></td>
+    </tr>`).join('');
+}
+
+async function filterLB(q) {
+  const cases = casesCache.length ? casesCache : await fetchCases();
+  const merged = [...LB_BASE];
+  cases.forEach(c => {
+    const existing = merged.find(r => r[0].toLowerCase().includes(c.agent.split(' ')[0].toLowerCase()));
+    if (existing) existing[2]++;
+    else merged.push([c.agent, '', 1]);
+  });
+  merged.sort((a, b) => b[2] - a[2]);
+  const max = merged[0]?.[2] || 1;
+  const filtered = q ? merged.filter(r => r[0].toLowerCase().includes(q.toLowerCase()) || r[1].toLowerCase().includes(q.toLowerCase())) : merged;
+  renderLB(filtered, max);
+}
+
+// ─── TOAST ───
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 3000);
+}
+
+// ─── INIT ───
+updateSlots();
+updateFlags();
+</script>
+</body>
+</html>
