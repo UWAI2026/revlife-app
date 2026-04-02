@@ -411,8 +411,8 @@ input,select,textarea,button{font-family:inherit}
               <div class="fi-note" id="opt2-note"></div>
             </div>
             <div>
-              <label class="fl">Option 3 — custom annual premium ($, optional)</label>
-              <input class="fi" id="opt3" placeholder="Leave blank to omit" oninput="recalcOptions()"/>
+              <label class="fl">Option 3 — premium to match current DB (auto-calculated)</label>
+              <input class="fi" id="opt3" placeholder="Auto-calculated to match current DB" oninput="recalcOptions()"/>
             </div>
             <div id="opt-preview" style="margin-top:10px;font-size:11px;color:#666"></div>
           </div>
@@ -730,11 +730,13 @@ async function runAIAnalysis() {
       type: 'text',
       text: `You are an expert at reading life insurance policy annual statements and in-force illustrations. Extract the fields below and return ONLY a raw JSON object — no markdown, no explanation, no backticks.
 
-POLICY TYPE DETECTION — choose one of exactly these four values:
+CRITICAL — NON-GUARANTEED VALUES: When the document shows both "Guaranteed" and "Non-Guaranteed" (or "Current Assumption") columns or scenarios, ALWAYS extract values from the Non-Guaranteed or Current Assumption scenario. NEVER use Guaranteed scenario values for csv, db, or any other numeric field.
+
+POLICY TYPE DETECTION — choose one of exactly these four values. IMPORTANT: IUL takes priority over UL — if there are any signs of index crediting, cap rates, floors, participation rates, or S&P 500 strategies, classify as "Indexed Universal Life" even if the document also says "universal life":
 - "Variable Life": look for words like variable, VUL, variable universal life, separate account, sub-accounts, investment options, market-linked, fund performance. If you see any of these, it is Variable Life.
-- "Indexed Universal Life": look for IUL, indexed universal life, S&P 500 cap, index crediting, floor, participation rate.
+- "Indexed Universal Life": look for IUL, indexed universal life, index crediting, indexed strategy, S&P 500 cap, cap rate, floor rate, participation rate. PRIORITIZE this over Universal Life.
 - "Whole Life": look for whole life, participating, dividend, guaranteed cash value table.
-- "Universal Life": look for universal life, UL, flexible premium, current assumption. Use this only if none of the above match.
+- "Universal Life": look for universal life, UL, flexible premium, current assumption. Use this ONLY if none of the above match.
 
 FIELDS TO EXTRACT:
 
@@ -835,7 +837,7 @@ function fileToBase64(file) {
 function populateExtractedFields(d) {
   if (!d) return;
   const set = (id, val) => { const el = document.getElementById(id); if (el && val !== null && val !== undefined) el.value = val; };
-  const typeMap = { 'whole life': 'Whole Life', 'variable': 'Variable Life', 'universal life': 'Universal Life', 'indexed': 'Indexed Universal Life' };
+  const typeMap = { 'whole life': 'Whole Life', 'variable': 'Variable Life', 'indexed': 'Indexed Universal Life', 'iul': 'Indexed Universal Life', 'universal life': 'Universal Life' };
   if (d.policyType) {
     const sel = document.getElementById('r-type');
     const lower = d.policyType.toLowerCase();
@@ -861,7 +863,7 @@ function populateExtractedFields(d) {
 function goStep(n) {
   [1, 2, 3, 4].forEach(i => document.getElementById('s' + i).style.display = i === n ? '' : 'none');
   if (n === 2) updateFlags();
-  if (n === 3) { syncOpt2(); renderCarrierRec(); recalcOptions(); buildAdvDis(); }
+  if (n === 3) { syncOpt2(); syncOpt3(); renderCarrierRec(); recalcOptions(); buildAdvDis(); }
   if (n === 4) buildOnePager();
 }
 
@@ -933,6 +935,18 @@ function syncOpt2() {
   }
 }
 
+function syncOpt3() {
+  const db = parseFloat(document.getElementById('r-db')?.value) || 0;
+  const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
+  const age = parseInt(document.getElementById('f-age')?.value) || 0;
+  const f = getDBFactor(age);
+  const o3el = document.getElementById('opt3');
+  if (o3el && f && db && csv && !o3el.value) {
+    const needed = Math.round((db / f - csv) / 5);
+    if (needed > 0) { o3el.value = needed; recalcOptions(); }
+  }
+}
+
 function recalcOptions() {
   const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
   const age = parseInt(document.getElementById('f-age')?.value) || 0;
@@ -948,7 +962,7 @@ function recalcOptions() {
   let h = `<div style="padding:8px;background:#f8f8f8;border-radius:8px">`;
   h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 1: </span>(${cl}) 1035 ${fmt$(csv)}, $0 premiums, ${db0 ? fmt$(db0) : '[DB]'} DB</div>`;
   if (p2) h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 2: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${db2 ? fmt$(db2) : '[DB]'} DB</div>`;
-  if (p3) h += `<div><span style="color:#888">Opt 3: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5, ${db3 ? fmt$(db3) : '[DB]'} DB</div>`;
+  if (p3) h += `<div><span style="color:#888">Opt 3: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5 → ${db3 ? fmt$(db3) : '[DB]'} DB (matches current)</div>`;
   document.getElementById('opt-preview').innerHTML = h + '</div>';
   renderCarrierRec();
 }
@@ -1000,6 +1014,13 @@ function updateFlags() {
 
 // ─── ADV/DIS ───
 function buildAdvDis() {
+  const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
+  const db = parseFloat(document.getElementById('r-db')?.value) || 0;
+  const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
+  const age = parseInt(document.getElementById('f-age')?.value) || 0;
+  const f = getDBFactor(age);
+  const db0 = f && csv ? Math.round(csv * f) : 0;
+  const db2 = f && csv && pr ? Math.round((csv + pr * 5) * f) : 0;
   const cap = selectedCarrier === 'AZ' ? '12.25%' : '11%';
   const m = {
     lapse: 'Policy lasts and grows throughout lifetime, instead of lapsing.',
@@ -1010,7 +1031,9 @@ function buildAdvDis() {
     caps: `Higher caps: S&P 500 cap is ${cap}.`,
     mkt: 'Eliminate market risk while maintaining market-like upside.'
   };
-  const adv = ['Bigger DB with or without premium payments.'];
+  const adv = [];
+  if (db0 > db) adv.push('Bigger DB with $0 additional premiums.');
+  if (db2 > db && pr > 0) adv.push('Bigger DB with same annual premium.');
   curDis.forEach(d => {
     const dl = d.toLowerCase();
     if (dl.includes('lapse')) adv.push(m.lapse);
@@ -1082,7 +1105,8 @@ function downloadPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
   const W = 792, H = 612;
-  const NAVY = [26, 44, 78], GOLD = [201, 168, 76], WHITE = [255,255,255], LGRAY = [240,240,240], DGRAY = [80,80,80], BLACK = [26,26,26];
+  const NAVY = [26,44,78], GOLD = [201,168,76], WHITE = [255,255,255], LGRAY = [210,215,220], BLACK = [26,26,26], MGRAY = [100,100,100];
+  const MID = W / 2, HEADER_H = 215, FOOTER_TOP = 533, LPAD = 26, COL_W = MID - LPAD * 2;
 
   const client = document.getElementById('f-client').value || '(Client Name)';
   const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
@@ -1095,150 +1119,201 @@ function downloadPDF() {
   const db0 = f ? Math.round(csv * f) : null;
   const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
   const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
-  const o1 = `(${c}) 1035 ${fmt$(csv)}, $0 premiums, ${db0 ? fmt$(db0) : '[DB]'} DB`;
-  const o2 = p2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${db2 ? fmt$(db2) : '[DB]'} DB` : '';
-  const o3 = db3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5, ${fmt$(db3)} DB` : '';
+  const o1 = `(${c}) 1035 ${fmt$(csv)}, $0 premiums \u2192 ${db0 ? fmt$(db0) : '[DB]'} DB`;
+  const o2 = p2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)}/yr x5 \u2192 ${db2 ? fmt$(db2) : '[DB]'} DB` : '';
+  const o3 = p3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)}/yr x5 \u2192 ${db3 ? fmt$(db3) : '[DB]'} DB` : '';
 
   // ── HEADER ──
-  const midX = W / 2;
   doc.setFillColor(...NAVY);
-  doc.rect(0, 0, W, 150, 'F');
+  doc.rect(0, 0, W, HEADER_H, 'F');
 
   // Client name box
-  doc.setDrawColor(255,255,255);
-  doc.setLineWidth(0.75);
-  doc.rect(30, 22, 220, 20);
+  doc.setDrawColor(...WHITE);
+  doc.setLineWidth(1);
+  doc.rect(LPAD, 22, 260, 24);
   doc.setTextColor(...WHITE);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text(client, 36, 36);
+  doc.text(client, LPAD + 8, 38);
 
-  // CASH VALUE title
-  doc.setFontSize(26);
+  // CASH VALUE
+  doc.setFontSize(30);
   doc.setFont('helvetica', 'bold');
-  doc.text('CASH VALUE', 30, 80);
+  doc.setTextColor(...WHITE);
+  doc.text('CASH VALUE', LPAD, 98);
 
   // Subtitle
-  doc.setFontSize(12);
+  doc.setFontSize(13);
   doc.setFont('helvetica', 'italic');
-  doc.setTextColor(210, 210, 210);
-  doc.text('Life Insurance Analysis', 30, 98);
+  doc.setTextColor(195, 210, 228);
+  doc.text('Life Insurance Analysis', LPAD, 118);
 
-  // Contact info box (white card top-right)
+  // Contact Info card
   doc.setFillColor(...WHITE);
-  doc.roundedRect(530, 14, 240, 122, 3, 3, 'F');
-  doc.setTextColor(...NAVY);
-  doc.setFontSize(9);
+  doc.roundedRect(508, 16, 262, 182, 5, 5, 'F');
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('CONTACT INFO', 542, 32);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...DGRAY);
-  doc.setFontSize(9);
-  doc.text('📞  (Phone Number)', 542, 52);
-  doc.text('✉   (Email Address)', 542, 68);
-  doc.text('🌐  (Website)', 542, 84);
+  doc.setTextColor(...NAVY);
+  doc.text('Contact Info', 526, 42);
+  doc.setDrawColor(...GOLD);
+  doc.setLineWidth(1.2);
+  doc.line(526, 47, 754, 47);
+
+  const contactRow = (label, placeholder, y) => {
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...MGRAY);
+    doc.text(label, 526, y);
+    doc.setTextColor(190, 190, 190);
+    doc.text(placeholder, 526 + doc.getTextWidth(label) + 4, y);
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.4);
+    doc.line(526, y + 5, 754, y + 5);
+  };
+  contactRow('Ph:', '(Phone Number)', 78);
+  contactRow('Em:', '(Email Address)', 115);
+  contactRow('Web:', '(Website)', 152);
 
   // ── COLUMN HEADERS ──
   doc.setDrawColor(...LGRAY);
   doc.setLineWidth(0.5);
-  doc.line(0, 150, W, 150);
+  doc.line(0, HEADER_H, W, HEADER_H);
 
-  // Left header
-  doc.setFillColor(245, 247, 250);
-  doc.rect(0, 150, midX, 28, 'F');
-  doc.setFontSize(10);
+  doc.setFontSize(10.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...NAVY);
-  doc.text('CURRENT POLICY', midX / 2, 169, { align: 'center' });
+  doc.text('CURRENT POLICY', MID / 2, HEADER_H + 26, { align: 'center' });
+  doc.setDrawColor(...GOLD);
+  doc.setLineWidth(1.5);
+  doc.line(MID / 2 - 52, HEADER_H + 31, MID / 2 + 52, HEADER_H + 31);
 
-  // Right header
-  doc.setFillColor(245, 247, 250);
-  doc.rect(midX, 150, midX, 28, 'F');
-  doc.text('1035 TO NEW POLICY', midX + midX / 2, 169, { align: 'center' });
+  doc.setTextColor(...NAVY);
+  doc.setFont('helvetica', 'bold');
+  doc.text('1035 TO NEW POLICY', MID + MID / 2, HEADER_H + 26, { align: 'center' });
+  doc.line(MID + MID / 2 - 68, HEADER_H + 31, MID + MID / 2 + 68, HEADER_H + 31);
 
   // Vertical divider
   doc.setDrawColor(...LGRAY);
   doc.setLineWidth(0.5);
-  doc.line(midX, 150, midX, 535);
-  doc.line(0, 178, W, 178);
+  doc.line(MID, HEADER_H, MID, FOOTER_TOP);
 
   // ── FIELD HELPER ──
-  const PAD = 28;
-  const COL_W = midX - PAD * 2;
-
-  const fieldRow = (x, y, label, value) => {
-    doc.setFontSize(7.5);
+  const field = (x, y, label, value) => {
+    doc.setFontSize(9.5);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(140, 140, 140);
+    doc.setTextColor(...MGRAY);
     doc.text(label, x, y);
-    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...BLACK);
-    const lines = doc.splitTextToSize(value || '—', COL_W);
-    doc.text(lines, x, y + 13);
-    doc.setDrawColor(...LGRAY);
+    const lw = doc.getTextWidth(label + ' ');
+    const valLines = doc.splitTextToSize(value || '\u2014', COL_W - lw);
+    doc.text(valLines[0], x + lw, y);
+    if (valLines.length > 1) {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...BLACK);
+      doc.text(valLines.slice(1).join(' '), x, y + 13);
+    }
+    doc.setDrawColor(195, 195, 195);
     doc.setLineWidth(0.4);
-    doc.line(x, y + 17, x + COL_W, y + 17);
-    return y + 17 + (lines.length - 1) * 12;
+    doc.line(x, y + 6, x + COL_W, y + 6);
+    return y + (valLines.length > 1 ? 32 : 26);
   };
 
   // ── LEFT COLUMN ──
-  let ly = 196;
-  ly = fieldRow(PAD, ly, 'Accumulation / Surrender Value:', fmt$(csv)) + 12;
-  ly = fieldRow(PAD, ly, 'Death Benefit:', fmt$(db)) + 12;
-  ly = fieldRow(PAD, ly, 'Annualized Premiums:', pr ? fmt$(pr) : '$0') + 18;
+  let ly = HEADER_H + 50;
+  ly = field(LPAD, ly, 'Accumulation/Surrender Value:', fmt$(csv));
+  ly = field(LPAD, ly, 'Death Benefit:', fmt$(db));
+  ly = field(LPAD, ly, 'Annualized Premiums:', pr ? fmt$(pr) : '$0');
+  ly += 4;
 
-  // Disadvantages header
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...NAVY);
-  doc.text('Disadvantages:', PAD, ly);
-  ly += 14;
+  doc.setTextColor(...BLACK);
+  doc.text('Disadvantages:', LPAD, ly);
+  ly += 6;
 
+  const disBoxH = FOOTER_TOP - ly - 8;
+  doc.setDrawColor(...LGRAY);
+  doc.setLineWidth(0.5);
+  doc.rect(LPAD, ly, COL_W, disBoxH);
+  let dy = ly + 14;
   curDis.forEach((d, i) => {
+    if (dy > ly + disBoxH - 12) return;
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...GOLD);
-    doc.text(`${i + 1}.`, PAD, ly);
+    doc.text(`${i + 1}.`, LPAD + 7, dy);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...BLACK);
-    const lines = doc.splitTextToSize(d, COL_W - 12);
-    doc.text(lines, PAD + 12, ly);
-    ly += lines.length * 11 + 5;
+    const lines = doc.splitTextToSize(d, COL_W - 26);
+    doc.text(lines, LPAD + 20, dy);
+    dy += lines.length * 12 + 4;
   });
 
   // ── RIGHT COLUMN ──
-  const rx = midX + PAD;
-  let ry = 196;
-  ry = fieldRow(rx, ry, 'Option 1:', o1) + 12;
-  ry = fieldRow(rx, ry, 'Option 2:' + (o2 ? '' : ' (if applicable)'), o2 || '—') + 12;
-  ry = fieldRow(rx, ry, 'Option 3:' + (o3 ? '' : ' (if applicable)'), o3 || '—') + 18;
+  const rx = MID + LPAD;
+  let ry = HEADER_H + 50;
 
-  // Advantages header
-  doc.setFontSize(9);
+  const optField = (x, y, label, value, note) => {
+    doc.setFontSize(9.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...MGRAY);
+    doc.text(label, x, y);
+    if (value) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...BLACK);
+      const lw = doc.getTextWidth(label + ' ');
+      const vlines = doc.splitTextToSize(value, COL_W - lw);
+      doc.text(vlines[0], x + lw, y);
+    }
+    doc.setDrawColor(195, 195, 195);
+    doc.setLineWidth(0.4);
+    doc.line(x, y + 6, x + COL_W, y + 6);
+    if (note) {
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(170, 170, 170);
+      doc.text(note, x, y + 16);
+      return y + 30;
+    }
+    return y + 24;
+  };
+
+  ry = optField(rx, ry, 'Option 1:', o1, null);
+  ry = optField(rx, ry, 'Option 2:', o2, o2 ? '(same premiums as current)' : '(if applicable)');
+  ry = optField(rx, ry, 'Option 3:', o3, o3 ? '(premium to match current DB)' : '(if applicable)');
+  ry += 6;
+
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...NAVY);
+  doc.setTextColor(...BLACK);
   doc.text('Advantages:', rx, ry);
-  ry += 14;
+  ry += 6;
 
+  const advBoxH = FOOTER_TOP - ry - 8;
+  doc.setDrawColor(...LGRAY);
+  doc.setLineWidth(0.5);
+  doc.rect(rx, ry, COL_W, advBoxH);
+  let ay = ry + 14;
   curAdv.forEach((a, i) => {
+    if (ay > ry + advBoxH - 12) return;
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...GOLD);
-    doc.text(`${i + 1}.`, rx, ry);
+    doc.text(`${i + 1}.`, rx + 7, ay);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...BLACK);
-    const lines = doc.splitTextToSize(a, COL_W - 12);
-    doc.text(lines, rx + 12, ry);
-    ry += lines.length * 11 + 5;
+    const lines = doc.splitTextToSize(a, COL_W - 26);
+    doc.text(lines, rx + 20, ay);
+    ay += lines.length * 12 + 4;
   });
 
   // ── FOOTER ──
   doc.setFillColor(...NAVY);
-  doc.rect(0, 538, W, 74, 'F');
+  doc.rect(0, FOOTER_TOP, W, H - FOOTER_TOP, 'F');
   doc.setFontSize(6.5);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(160, 170, 185);
+  doc.setTextColor(155, 170, 190);
   const disc = [
     'By contacting _________________________________ (Agent License #) you may be offered information regarding the purchase of insurance products, including fixed index annuities and life insurance.',
     'For agent use only. This is not an illustration, guarantee of performance, or an offer of insurance. This is an educational tool and purely hypothetical.',
@@ -1246,7 +1321,7 @@ function downloadPDF() {
     'Disadvantages of a new policy may not be included in the details above.'
   ];
   disc.forEach((line, i) => {
-    doc.text(line, W / 2, 552 + i * 11, { align: 'center' });
+    doc.text(line, W / 2, FOOTER_TOP + 16 + i * 11, { align: 'center' });
   });
 
   doc.save(`1035_Analysis_${client.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`);
