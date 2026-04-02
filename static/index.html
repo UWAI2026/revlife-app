@@ -562,6 +562,7 @@ const LB_BASE = [["Shea, Kevin","",24],["Messina, Nick","",16],["Barnett, Kurtis
 let currentUser = null;
 let currentRole = null;
 let selectedCarrier = 'AZ';
+let carrierManuallySelected = false;
 let curDis = [], curAdv = [];
 let uploadedFiles = [];
 let modalCaseId = null;
@@ -590,6 +591,10 @@ async function apiPut(path, body) {
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
     body: JSON.stringify(body)
   });
+  return res.json();
+}
+async function apiDelete(path) {
+  const res = await fetch(path, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getToken() } });
   return res.json();
 }
 async function fetchCases() {
@@ -863,6 +868,7 @@ function populateExtractedFields(d) {
 function goStep(n) {
   [1, 2, 3, 4].forEach(i => document.getElementById('s' + i).style.display = i === n ? '' : 'none');
   if (n === 2) updateFlags();
+  if (n === 1) { carrierManuallySelected = false; }
   if (n === 3) { syncOpt2(); syncOpt3(); renderCarrierRec(); recalcOptions(); buildAdvDis(); }
   if (n === 4) buildOnePager();
 }
@@ -905,7 +911,7 @@ function renderCarrierRec() {
   const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
   const funded = csv + p2 * 5;
   const d = decideCarrier(age, funded);
-  selectedCarrier = d.c === 'both' || d.c === 'none' ? 'AZ' : d.c;
+  if (!carrierManuallySelected) { selectedCarrier = d.c === 'both' || d.c === 'none' ? 'AZ' : d.c; }
   updateCarrierToggle();
   const cls = d.st === 'ok' ? 'ok' : d.st === 'er' ? 'er' : 'wn';
   const bc = d.c === 'CL' ? 'cl' : d.c === 'both' || d.c === 'none' ? 'wn' : 'az';
@@ -923,7 +929,7 @@ function updateCarrierToggle() {
   document.getElementById('c-cl').className = 'carrier-opt' + (selectedCarrier === 'CL' ? ' sel' : '');
 }
 
-function selectCarrier(c) { selectedCarrier = c; updateCarrierToggle(); recalcOptions(); buildAdvDis(); }
+function selectCarrier(c) { selectedCarrier = c; carrierManuallySelected = true; updateCarrierToggle(); recalcOptions(); buildAdvDis(); }
 
 function syncOpt2() {
   const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
@@ -1101,21 +1107,35 @@ function buildOnePager() {
 }
 
 // ─── PDF DOWNLOAD ───
-function downloadPDF() {
+function redownloadPDFFromCase(id) {
+  const c = casesCache.find(x => x.id === id);
+  if (!c) { showToast('Case data not available — please re-run the analysis'); return; }
+  downloadPDF({
+    client: c.client, csv: c.csv, db: c.dbAmount, pr: c.annualPremium,
+    age: c.age, carrier: c.carrier, p2: c.opt2Premium, p3: c.opt3Premium,
+    dis: c.dis, adv: c.adv
+  });
+}
+
+function downloadPDF(override) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
   const W = 792, H = 612;
   const NAVY = [26,44,78], GOLD = [201,168,76], WHITE = [255,255,255], LGRAY = [210,215,220], BLACK = [26,26,26], MGRAY = [100,100,100];
   const MID = W / 2, HEADER_H = 215, FOOTER_TOP = 533, LPAD = 26, COL_W = MID - LPAD * 2;
 
-  const client = document.getElementById('f-client').value || '(Client Name)';
-  const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
-  const db = parseFloat(document.getElementById('r-db')?.value) || 0;
-  const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
-  const age = parseInt(document.getElementById('f-age')?.value) || 0;
-  const f = getDBFactor(age), c = selectedCarrier === 'AZ' ? 'AZ' : 'CL';
-  const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
-  const p3 = parseFloat(document.getElementById('opt3')?.value) || 0;
+  const o = override || {};
+  const client = o.client ?? (document.getElementById('f-client').value || '(Client Name)');
+  const csv = o.csv ?? (parseFloat(document.getElementById('r-csv')?.value) || 0);
+  const db = o.db ?? (parseFloat(document.getElementById('r-db')?.value) || 0);
+  const pr = o.pr ?? (parseFloat(document.getElementById('r-prem')?.value) || 0);
+  const age = o.age ?? (parseInt(document.getElementById('f-age')?.value) || 0);
+  const carrier = o.carrier ?? selectedCarrier;
+  const f = getDBFactor(age), c = carrier === 'AZ' ? 'AZ' : 'CL';
+  const p2 = o.p2 ?? (parseFloat(document.getElementById('opt2')?.value) || 0);
+  const p3 = o.p3 ?? (parseFloat(document.getElementById('opt3')?.value) || 0);
+  const pdfDis = o.dis ?? curDis;
+  const pdfAdv = o.adv ?? curAdv;
   const db0 = f ? Math.round(csv * f) : null;
   const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
   const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
@@ -1237,7 +1257,7 @@ function downloadPDF() {
   doc.setLineWidth(0.5);
   doc.rect(LPAD, ly, COL_W, disBoxH);
   let dy = ly + 14;
-  curDis.forEach((d, i) => {
+  pdfDis.forEach((d, i) => {
     if (dy > ly + disBoxH - 12) return;
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
@@ -1295,7 +1315,7 @@ function downloadPDF() {
   doc.setLineWidth(0.5);
   doc.rect(rx, ry, COL_W, advBoxH);
   let ay = ry + 14;
-  curAdv.forEach((a, i) => {
+  pdfAdv.forEach((a, i) => {
     if (ay > ry + advBoxH - 12) return;
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
@@ -1339,6 +1359,11 @@ async function saveCase() {
     date: now,
     carrier: selectedCarrier,
     csv: parseFloat(csv) || 0,
+    dbAmount: parseFloat(document.getElementById('r-db')?.value) || 0,
+    age: parseInt(document.getElementById('f-age')?.value) || 0,
+    annualPremium: parseFloat(document.getElementById('r-prem')?.value) || 0,
+    opt2Premium: parseFloat(document.getElementById('opt2')?.value) || 0,
+    opt3Premium: parseFloat(document.getElementById('opt3')?.value) || 0,
     dis: [...curDis],
     adv: [...curAdv],
     opt1: document.getElementById('opt-preview')?.innerText || ''
@@ -1372,6 +1397,7 @@ async function buildCasesTable() {
       <td>
         <button class="btn btn-sm" onclick="openModal(${c.id})">Update</button>
         <button class="btn btn-sm btn-gold" onclick="redownloadPDFFromCase(${c.id})" style="margin-left:4px">PDF</button>
+        <button class="btn btn-sm" onclick="deleteCase(${c.id})" style="margin-left:4px;color:#c0392b;border-color:#e8b4b0">Delete</button>
       </td>
     </tr>`).join('');
 }
@@ -1459,6 +1485,15 @@ async function saveStageChange() {
   buildPipeline();
   buildCasesTable();
   showToast('Case updated');
+}
+
+// ─── DELETE CASE ───
+async function deleteCase(id) {
+  if (!confirm('Delete this case? This cannot be undone.')) return;
+  await apiDelete(`/api/cases/${id}`);
+  buildPipeline();
+  buildCasesTable();
+  showToast('Case deleted');
 }
 
 // ─── LEADERBOARD ───

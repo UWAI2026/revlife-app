@@ -50,6 +50,11 @@ class Case(db.Model):
     stage_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     carrier = db.Column(db.String(10))
     csv = db.Column(db.Float, default=0)
+    db_amount = db.Column(db.Float, default=0)
+    age = db.Column(db.Integer, default=0)
+    annual_premium = db.Column(db.Float, default=0)
+    opt2_premium = db.Column(db.Float, default=0)
+    opt3_premium = db.Column(db.Float, default=0)
     stage = db.Column(db.Integer, default=1)
     notes = db.Column(db.Text, default='')
     lead_source = db.Column(db.String(100), default='')
@@ -71,6 +76,11 @@ class Case(db.Model):
             'stageUpdatedAt': int(self.stage_updated_at.timestamp() * 1000) if self.stage_updated_at else 0,
             'carrier': self.carrier,
             'csv': self.csv or 0,
+            'dbAmount': self.db_amount or 0,
+            'age': self.age or 0,
+            'annualPremium': self.annual_premium or 0,
+            'opt2Premium': self.opt2_premium or 0,
+            'opt3Premium': self.opt3_premium or 0,
             'stage': self.stage or 1,
             'notes': self.notes or '',
             'leadSource': self.lead_source or '',
@@ -184,6 +194,11 @@ def create_case():
         date=data.get('date', ''),
         carrier=data.get('carrier', 'AZ'),
         csv=data.get('csv', 0),
+        db_amount=data.get('dbAmount', 0),
+        age=data.get('age', 0),
+        annual_premium=data.get('annualPremium', 0),
+        opt2_premium=data.get('opt2Premium', 0),
+        opt3_premium=data.get('opt3Premium', 0),
         stage=1,
         dis=data.get('dis', []),
         adv=data.get('adv', []),
@@ -224,6 +239,20 @@ def update_case(case_id):
     return jsonify(case.to_dict())
 
 
+@app.route('/api/cases/<int:case_id>', methods=['DELETE'])
+@require_auth
+def delete_case(case_id):
+    user = request.user
+    case = db.session.get(Case, case_id)
+    if not case:
+        return jsonify({'error': 'Not found'}), 404
+    if user['role'] != 'fmo' and case.agent_email != user['email']:
+        return jsonify({'error': 'Forbidden'}), 403
+    db.session.delete(case)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
@@ -242,6 +271,22 @@ def analyze():
 
 with app.app_context():
     db.create_all()
+    # Add new columns if they don't exist (safe to run on every startup)
+    from sqlalchemy import text
+    new_cols = [
+        ('db_amount', 'FLOAT DEFAULT 0'),
+        ('age', 'INTEGER DEFAULT 0'),
+        ('annual_premium', 'FLOAT DEFAULT 0'),
+        ('opt2_premium', 'FLOAT DEFAULT 0'),
+        ('opt3_premium', 'FLOAT DEFAULT 0'),
+    ]
+    with db.engine.connect() as conn:
+        for col, coltype in new_cols:
+            try:
+                conn.execute(text(f'ALTER TABLE cases ADD COLUMN {col} {coltype}'))
+                conn.commit()
+            except Exception:
+                pass
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
