@@ -1139,9 +1139,9 @@ function downloadPDF(override) {
   const db0 = f ? Math.round(csv * f) : null;
   const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
   const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
-  const o1 = `(${c}) 1035 ${fmt$(csv)}, $0 premiums \u2192 ${db0 ? fmt$(db0) : '[DB]'} DB`;
-  const o2 = p2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)}/yr x5 \u2192 ${db2 ? fmt$(db2) : '[DB]'} DB` : '';
-  const o3 = p3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)}/yr x5 \u2192 ${db3 ? fmt$(db3) : '[DB]'} DB` : '';
+  const o1 = `(${c}) 1035 ${fmt$(csv)}, $0 premiums = ${db0 ? fmt$(db0) : '[DB]'} DB`;
+  const o2 = p2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)}/yr x5 = ${db2 ? fmt$(db2) : '[DB]'} DB` : '';
+  const o3 = p3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)}/yr x5 = ${db3 ? fmt$(db3) : '[DB]'} DB` : '';
 
   // ── HEADER ──
   doc.setFillColor(...NAVY);
