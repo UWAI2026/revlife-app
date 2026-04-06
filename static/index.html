@@ -553,6 +553,8 @@ input,select,textarea,button{font-family:inherit}
 const DB_FACTORS = [[0,15,5],[16,20,4.75],[21,29,4.5],[30,39,4],[40,44,3.75],[45,49,3.5],[50,54,3],[55,59,2.5],[60,64,2.25],[65,69,2],[70,73,1.75],[74,75,1.65],[76,200,1.5]];
 const AZ_MIN = [[0,45,25000],[46,59,50000],[60,69,75000],[70,72,100000],[73,90,125000]];
 const CL_MIN = [[0,45,10000],[46,59,12000],[60,69,15000],[70,79,25000]];
+const AZ_MIN_DB = 100000;
+const CL_MIN_DB = 25000;
 const STAGE_NAMES = ['','Sent for Analysis','Analysis Provided','Appt Scheduled','1035 Presented','2nd Meeting Needed','App Submitted','Not Submitted'];
 const STAGE_CLASSES = ['','stage-1','stage-2','stage-3','stage-4','stage-5','stage-6','stage-7'];
 
@@ -963,12 +965,16 @@ function recalcOptions() {
   const db0 = f ? Math.round(csv * f) : null;
   document.getElementById('c-db0').textContent = db0 ? fmt$(db0) : '—';
   const cl = selectedCarrier === 'AZ' ? 'AZ' : 'CL';
+  const minDB = selectedCarrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
   const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
   const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
   let h = `<div style="padding:8px;background:#f8f8f8;border-radius:8px">`;
-  h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 1: </span>(${cl}) 1035 ${fmt$(csv)}, $0 premiums, ${db0 ? fmt$(db0) : '[DB]'} DB</div>`;
-  if (p2) h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 2: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${db2 ? fmt$(db2) : '[DB]'} DB</div>`;
-  if (p3) h += `<div><span style="color:#888">Opt 3: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5 → ${db3 ? fmt$(db3) : '[DB]'} DB (matches current)</div>`;
+  if (db0 && db0 >= minDB) h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 1: </span>(${cl}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(db0)} DB</div>`;
+  else if (db0) h += `<div style="margin-bottom:3px;color:#c0392b"><span style="color:#888">Opt 1: </span>N/A — $0 premiums yields ${fmt$(db0)} DB, below ${fmt$(minDB)} ${cl} minimum</div>`;
+  if (p2 && db2 && db2 >= minDB) h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 2: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${fmt$(db2)} DB</div>`;
+  else if (p2 && db2) h += `<div style="margin-bottom:3px;color:#c0392b"><span style="color:#888">Opt 2: </span>N/A — yields ${fmt$(db2)} DB, below ${fmt$(minDB)} ${cl} minimum</div>`;
+  if (p3 && db3 && db3 >= minDB) h += `<div><span style="color:#888">Opt 3: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5 = ${fmt$(db3)} DB (matches current)</div>`;
+  else if (p3 && db3) h += `<div style="color:#c0392b"><span style="color:#888">Opt 3: </span>N/A — yields ${fmt$(db3)} DB, below ${fmt$(minDB)} ${cl} minimum</div>`;
   document.getElementById('opt-preview').innerHTML = h + '</div>';
   renderCarrierRec();
 }
@@ -1037,9 +1043,10 @@ function buildAdvDis() {
     caps: `Higher caps: S&P 500 cap is ${cap}.`,
     mkt: 'Eliminate market risk while maintaining market-like upside.'
   };
+  const minDB = selectedCarrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
   const adv = [];
-  if (db0 > db) adv.push('Bigger DB with $0 additional premiums.');
-  if (db2 > db && pr > 0) adv.push('Bigger DB with same annual premium.');
+  if (db0 > db && db0 >= minDB) adv.push('Bigger DB with $0 additional premiums.');
+  if (db2 > db && db2 >= minDB && pr > 0) adv.push('Bigger DB with same annual premium.');
   curDis.forEach(d => {
     const dl = d.toLowerCase();
     if (dl.includes('lapse')) adv.push(m.lapse);
@@ -1065,12 +1072,13 @@ function buildOnePager() {
   const f = getDBFactor(age), c = selectedCarrier === 'AZ' ? 'AZ' : 'CL';
   const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
   const p3 = parseFloat(document.getElementById('opt3')?.value) || 0;
+  const minDB = selectedCarrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
   const db0 = f ? Math.round(csv * f) : null;
   const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
   const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
-  const o1 = `(${c}) 1035 ${fmt$(csv)}, $0 premiums, ${db0 ? fmt$(db0) : '[DB]'} DB`;
-  const o2 = p2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${db2 ? fmt$(db2) : '[DB]'} DB` : '';
-  const o3 = db3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5, ${fmt$(db3)} DB` : '';
+  const o1 = (db0 && db0 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(db0)} DB` : (db0 ? `N/A — ${fmt$(db0)} DB is below ${fmt$(minDB)} ${c} minimum` : `(${c}) 1035 ${fmt$(csv)}, $0 premiums, [DB] DB`);
+  const o2 = (p2 && db2 && db2 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${fmt$(db2)} DB` : '';
+  const o3 = (p3 && db3 && db3 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5, ${fmt$(db3)} DB` : '';
   document.getElementById('op-preview-box').innerHTML = `
     <div class="op-header">
       <div>
@@ -1136,12 +1144,13 @@ function downloadPDF(override) {
   const p3 = o.p3 ?? (parseFloat(document.getElementById('opt3')?.value) || 0);
   const pdfDis = o.dis ?? curDis;
   const pdfAdv = o.adv ?? curAdv;
+  const minDB = carrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
   const db0 = f ? Math.round(csv * f) : null;
   const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
   const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
-  const o1 = `(${c}) 1035 ${fmt$(csv)}, $0 premiums = ${db0 ? fmt$(db0) : '[DB]'} DB`;
-  const o2 = p2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)}/yr x5 = ${db2 ? fmt$(db2) : '[DB]'} DB` : '';
-  const o3 = p3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)}/yr x5 = ${db3 ? fmt$(db3) : '[DB]'} DB` : '';
+  const o1 = (db0 && db0 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, $0 premiums = ${fmt$(db0)} DB` : (db0 ? `N/A — ${fmt$(db0)} DB is below ${fmt$(minDB)} ${c} minimum` : `(${c}) 1035 ${fmt$(csv)}, $0 premiums = [DB] DB`);
+  const o2 = (p2 && db2 && db2 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)}/yr x5 = ${fmt$(db2)} DB` : '';
+  const o3 = (p3 && db3 && db3 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)}/yr x5 = ${fmt$(db3)} DB` : '';
 
   // ── HEADER ──
   doc.setFillColor(...NAVY);
