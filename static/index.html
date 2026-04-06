@@ -1354,7 +1354,7 @@ async function saveCase() {
   const agent = document.getElementById('f-agent').value || currentUser;
   const csv = document.getElementById('r-csv').value || '0';
   const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  await apiPost('/api/cases', {
+  const res = await apiPost('/api/cases', {
     client, agent,
     date: now,
     carrier: selectedCarrier,
@@ -1368,6 +1368,10 @@ async function saveCase() {
     adv: [...curAdv],
     opt1: document.getElementById('opt-preview')?.innerText || ''
   });
+  if (res.error || !res.id) {
+    showToast('Error saving case — please log out and log back in, then try again');
+    return;
+  }
   showToast(`Case saved for ${client} — view in Cases or Pipeline`);
   goStep(1);
   updateSlots();
