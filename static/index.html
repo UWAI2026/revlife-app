@@ -356,11 +356,13 @@ input,select,textarea,button{font-family:inherit}
               </select>
             </div>
             <div><label class="fl">Current carrier</label><input class="fi" id="r-carrier" placeholder="e.g. Pacific Life"/></div>
-            <div><label class="fl">Accumulation / surrender value ($)</label><input class="fi" id="r-csv" placeholder="e.g. 74583" oninput="updateFlags()"/></div>
+            <div><label class="fl">Accumulation / cash value ($)</label><input class="fi" id="r-acc" placeholder="e.g. 80000 (before surrender charges)" oninput="updateFlags()"/></div>
+            <div><label class="fl">Surrender / exchange value ($)</label><input class="fi" id="r-csv" placeholder="e.g. 74583 (after surrender charges — same as above if no charges)" oninput="updateFlags()"/></div>
             <div><label class="fl">Death benefit ($)</label><input class="fi" id="r-db" placeholder="e.g. 100000" oninput="updateFlags()"/></div>
             <div><label class="fl">Annualized premium ($)</label><input class="fi" id="r-prem" placeholder="e.g. 960" oninput="updateFlags();syncOpt2()"/></div>
             <div><label class="fl">Total premiums paid ($)</label><input class="fi" id="r-totprem" placeholder="e.g. 30720" oninput="updateFlags()"/></div>
             <div><label class="fl">Years in force</label><input class="fi" id="r-years" placeholder="e.g. 32" oninput="updateFlags()"/></div>
+            <div><label class="fl">Prior year cash value ($)</label><input class="fi" id="r-prioryear" placeholder="e.g. 72000 (from last year's statement)" oninput="updateFlags()"/></div>
             <div><label class="fl">Loan rate (% or "not listed")</label><input class="fi" id="r-loan" placeholder="e.g. 5 or not listed" oninput="updateFlags()"/></div>
             <div><label class="fl">S&P 500 cap rate (IUL only, % or "n/a")</label><input class="fi" id="r-cap" placeholder="e.g. 9.5 or n/a" oninput="updateFlags()"/></div>
             <div><label class="fl">Lapse age / years remaining</label><input class="fi" id="r-lapse" placeholder="e.g. age 78 or not shown" oninput="updateFlags()"/></div>
@@ -555,10 +557,10 @@ const AZ_MIN = [[0,45,25000],[46,59,50000],[60,69,75000],[70,72,100000],[73,90,1
 const CL_MIN = [[0,45,10000],[46,59,12000],[60,69,15000],[70,79,25000]];
 const AZ_MIN_DB = 100000;
 const CL_MIN_DB = 25000;
-const STAGE_NAMES = ['','Sent for Analysis','Analysis Provided','Appt Scheduled','1035 Presented','2nd Meeting Needed','App Submitted','Not Submitted'];
-const STAGE_CLASSES = ['','stage-1','stage-2','stage-3','stage-4','stage-5','stage-6','stage-7'];
+const STAGE_NAMES = ['','Analysis Provided','Appt Scheduled','1035 Presented','2nd Meeting Needed','App Submitted','Not Submitted'];
+const STAGE_CLASSES = ['','stage-2','stage-3','stage-4','stage-5','stage-6','stage-7'];
 
-const LB_BASE = [["Shea, Kevin","",24],["Messina, Nick","",16],["Barnett, Kurtis","",15],["Heath, Slade","Caleb Heath",14],["Mundt, Justin","",11],["Singer, Peter","",11],["Grady, Brendan","Sean Flynn",9],["Campbell, Rocky","",8],["Ingier, Henry","",8],["Jacobsohn, Mark","",7],["Larson, Arika","",7],["Orfin, Dan","",7],["Rigano, Nick","Mikayla Carrah",7],["Weiss, Marty","",7],["Loveland, Tom","Jake Perriera",6],["Retallick, Don","",6],["Shyman, Steve","",6],["Westall, Eric","Zak Moore",6],["Brumfield, Lisa","",5],["Caiati, Dominick","",5],["Deutsch, Mary","",5],["Dietz, Jesse","Alison Walker",5],["McCambell, Kim","Chantal Smith",5],["Baldwin, Steve","",4],["Bergeson, Amy","",4],["Campbell, Daniel","Brett Anderson",4],["Caulkins, Heather","Malaya Brockway",4],["Mullis, Chris","",4],["Walker, Matt","Lavely, Sal",4],["Blackwell, Lisa","Devonte Wilson",3],["Grafrath, Katie","",3],["Grimes, Dustin","",3],["Hall, Ryan","",3],["Pomarico, Tony","",3],["Baun, Jean","",2],["Erb, Vince","Lisa Chandler",2],["Gayanyan, Nvard","",2],["Gibbs, Bo","Ryan Baumann",2],["McNinch, Joel","",2],["Miller, Matt","",2],["Olson, John","",2],["Pieracini, Andrew","Kim Allen",2],["Rogers, Hayward","",2],["Summerlin, Stacy","Keith Summerlin",2],["Turney, Scott","Justin Turney",2],["Villella, Judy","",2],["Weinberg, Rhonda","",2],["Allen, Kim","",1],["Campbell, Susan","",1],["Davis, JC","",1],["Fraga, Justin","",1],["Goehl, Steve","",1],["Henderson, Pamala","",1],["Hoffman, Pat & Schwann, Sid","",1],["Holland, Steve","",1],["Jacobs, Breck","",1],["Kagan, Andrew","",1],["Lau, Phil","",1],["Liggett, Hombre","",1],["Linnehan, Ryan","",1],["Pang, Wendy","",1],["Rael, Chris","",1],["Reising, John","",1],["Sims, Ben","",1],["Spivy, Randy","",1],["Watson, Tom","",1]];
+const LB_BASE = [["Shea, Kevin","",24],["Messina, Nick","",16],["Barnett, Kurtis","",15],["Heath, Slade","Caleb Heath",14],["Mundt, Justin","",14],["Singer, Peter","",11],["Campbell, Rocky","",10],["Grady, Brendan","Sean Flynn",9],["Rigano, Nick","Mikayla Carrah",9],["Ingier, Henry","",8],["Jacobsohn, Mark","",7],["Larson, Arika","",7],["McCambell, Kim","Chantal Smith",7],["Orfin, Dan","",7],["Weiss, Marty","",7],["Loveland, Tom","Jake Perriera",6],["Mullis, Chris","",6],["Retallick, Don","",6],["Shyman, Steve","",6],["Westall, Eric","Zak Moore",6],["Brumfield, Lisa","",5],["Caiati, Dominick","",5],["Deutsch, Mary","",5],["Dietz, Jesse","Alison Walker",5],["Baldwin, Steve","",4],["Bergeson, Amy","",4],["Campbell, Daniel","Brett Anderson",4],["Caulkins, Heather","Malaya Brockway",4],["Walker, Matt","Lavely, Sal",4],["Blackwell, Lisa","Devonte Wilson",3],["Erb, Vince","Lisa Chandler",3],["Grafrath, Katie","",3],["Grimes, Dustin","",3],["Hall, Ryan","",3],["Pomarico, Tony","",3],["Allen, Kim","",2],["Baun, Jean","",2],["Gayanyan, Nvard","",2],["Gibbs, Bo","Ryan Baumann",2],["McNinch, Joel","",2],["Miller, Matt","",2],["Olson, John","",2],["Pieracini, Andrew","Kim Allen",2],["Rogers, Hayward","",2],["Summerlin, Stacy","Keith Summerlin",2],["Turney, Scott","Justin Turney",2],["Villella, Judy","",2],["Weinberg, Rhonda","",2],["Campbell, Susan","",1],["Davis, JC","",1],["Fraga, Justin","",1],["Goehl, Steve","",1],["Henderson, Pamala","",1],["Hoffman, Pat & Schwann, Sid","",1],["Holland, Steve","",1],["Jacobs, Breck","",1],["Kagan, Andrew","",1],["Lau, Phil","",1],["Liggett, Hombre","",1],["Linnehan, Ryan","",1],["Pang, Wendy","",1],["Rael, Chris","",1],["Reising, John","",1],["Sims, Ben","",1],["Spivy, Randy","",1],["Watson, Tom","",1]];
 
 // ─── STATE ───
 let currentUser = null;
@@ -739,6 +741,8 @@ async function runAIAnalysis() {
 
 CRITICAL — NON-GUARANTEED VALUES: When the document shows both "Guaranteed" and "Non-Guaranteed" (or "Current Assumption") columns or scenarios, ALWAYS extract values from the Non-Guaranteed or Current Assumption scenario. NEVER use Guaranteed scenario values for csv, db, or any other numeric field.
 
+MULTIPLE POLICIES: If multiple policy documents are provided (or a single document covers multiple policies), ADD TOGETHER the csv, accumulationValue, db, and annualPremium values across all policies. Set notes to describe each policy and explain the sum. Never return only one policy's values when multiple are present.
+
 POLICY TYPE DETECTION — choose one of exactly these four values. IMPORTANT: IUL takes priority over UL — if there are any signs of index crediting, cap rates, floors, participation rates, or S&P 500 strategies, classify as "Indexed Universal Life" even if the document also says "universal life":
 - "Variable Life": look for words like variable, VUL, variable universal life, separate account, sub-accounts, investment options, market-linked, fund performance. If you see any of these, it is Variable Life.
 - "Indexed Universal Life": look for IUL, indexed universal life, index crediting, indexed strategy, S&P 500 cap, cap rate, floor rate, participation rate. PRIORITIZE this over Universal Life.
@@ -751,7 +755,11 @@ policyType: (string) One of the four values above. Default to "Variable Life" if
 
 carrier: (string) The insurance company name. Look in the header, letterhead, or "issued by" field.
 
-csv: (number) The current cash value or surrender value. Look for labels like: Account Value, Accumulation Value, Cash Surrender Value, Net Surrender Value, Policy Value, Fund Value, Total Account Value. If both accumulation and surrender values are shown, use the LOWER (surrender) value. Return digits only, no $ or commas.
+accumulationValue: (number) The accumulation or cash value BEFORE surrender charges. For Whole Life: use the TOTAL cash value or the largest cash value shown — NOT base cash value alone; include paid-up additions and any rider values. Look for: Accumulation Value, Account Value, Cash Value, Total Cash Value, Fund Value, Policy Value. Return digits only.
+
+csv: (number) The NET surrender value AFTER surrender charges. Look for: Net Surrender Value, Cash Surrender Value, Surrender Value. If there are NO surrender charges, set this equal to accumulationValue. Return digits only.
+
+priorYearValue: (number) The cash or accumulation value from the PRIOR year (12 months ago). Look for: Prior Year Value, Last Year Value, Beginning of Year Value, Previous Year Cash Value, or a table comparing last year vs. this year. Return digits only, or 0 if not shown.
 
 db: (number) The current death benefit or face amount. Look for: Death Benefit, Face Amount, Total Death Benefit, Coverage Amount, Insurance Amount. Return digits only.
 
@@ -772,9 +780,9 @@ hasCI: (string) Return "yes" if the document lists any of: Chronic Illness Rider
 notes: (string) Any other relevant observations, warnings, or unusual features of the policy.
 
 CRITICAL RULES:
-- Never return null for csv, db, annualPremium, loanRate, or hasCI — use "not listed" if truly absent.
+- Never return null for csv, accumulationValue, db, annualPremium, loanRate, or hasCI — use 0 or "not listed" if truly absent.
 - For totalPremiumsPaid: always calculate annualPremium × yearsInForce if not explicitly stated.
-- If the document shows multiple policies, add up the values and note this in notes.
+- For multiple policies: SUM csv, accumulationValue, db, and annualPremium across all policies.
 - Return ONLY the JSON object. No explanation, no markdown.`
     });
 
@@ -853,11 +861,13 @@ function populateExtractedFields(d) {
     }
   }
   set('r-carrier', d.carrier);
+  set('r-acc', d.accumulationValue || d.csv);
   set('r-csv', d.csv);
   set('r-db', d.db);
   set('r-prem', d.annualPremium);
   set('r-totprem', d.totalPremiumsPaid);
   set('r-years', d.yearsInForce);
+  if (d.priorYearValue) set('r-prioryear', d.priorYearValue);
   set('r-loan', d.loanRate);
   set('r-cap', d.capRate);
   set('r-lapse', d.lapseInfo);
@@ -955,26 +965,67 @@ function syncOpt3() {
   }
 }
 
+// ─── OPTION CALCULATOR ───
+// Returns opt1/opt2/opt3 data applying carrier minimum DB rules:
+// Opt1: $0 premiums if csv*f >= minDB, else minimum annual premium to reach minDB
+// Opt2: current premium x5 if db2 >= minDB, else blank
+// Opt3: match current DB (only if different from opt1/2); if opt2 blank, moves to opt2 slot
+function calcOptData(csv, currentDB, age, carrier, p2, p3) {
+  const f = getDBFactor(age);
+  const c = carrier === 'AZ' ? 'AZ' : 'CL';
+  const minDB = carrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
+  const db0 = f && csv ? Math.round(csv * f) : null;
+
+  // Opt 1
+  let o1Prem = 0, o1DB = null;
+  if (f && csv) {
+    if (db0 >= minDB) { o1DB = db0; }
+    else {
+      o1Prem = Math.ceil((minDB / f - csv) / 5);
+      if (o1Prem > 0) o1DB = Math.round((csv + o1Prem * 5) * f);
+    }
+  }
+
+  // Opt 2 raw (current premium x5)
+  const db2raw = (f && p2) ? Math.round((csv + p2 * 5) * f) : null;
+  const o2Valid = !!(p2 && db2raw && db2raw >= minDB);
+
+  // Opt 3 raw (match current DB)
+  const db3raw = (f && p3) ? Math.round((csv + p3 * 5) * f) : null;
+  const o3Valid = !!(p3 && db3raw && db3raw >= minDB);
+
+  // If opt2 blank, move opt3 into opt2 slot
+  const showO2 = o2Valid ? { prem: p2, db: db2raw } : (o3Valid ? { prem: p3, db: db3raw } : null);
+  const showO3 = (o2Valid && o3Valid) ? { prem: p3, db: db3raw } : null;
+
+  return { f, c, minDB, db0, o1Prem, o1DB, showO2, showO3 };
+}
+
 function recalcOptions() {
   const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
   const age = parseInt(document.getElementById('f-age')?.value) || 0;
-  const f = getDBFactor(age);
   const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
   const p3 = parseFloat(document.getElementById('opt3')?.value) || 0;
-  document.getElementById('c-info').textContent = fmt$(csv) + ' / age ' + (age || '?') + ' / ' + (f ? f + 'x' : '?');
+  const f = getDBFactor(age);
   const db0 = f ? Math.round(csv * f) : null;
+  document.getElementById('c-info').textContent = fmt$(csv) + ' / age ' + (age || '?') + ' / ' + (f ? f + 'x' : '?');
   document.getElementById('c-db0').textContent = db0 ? fmt$(db0) : '—';
-  const cl = selectedCarrier === 'AZ' ? 'AZ' : 'CL';
-  const minDB = selectedCarrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
-  const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
-  const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
+
+  const opts = calcOptData(csv, 0, age, selectedCarrier, p2, p3);
+  const cl = opts.c;
   let h = `<div style="padding:8px;background:#f8f8f8;border-radius:8px">`;
-  if (db0 && db0 >= minDB) h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 1: </span>(${cl}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(db0)} DB</div>`;
-  else if (db0) h += `<div style="margin-bottom:3px;color:#c0392b"><span style="color:#888">Opt 1: </span>N/A — $0 premiums yields ${fmt$(db0)} DB, below ${fmt$(minDB)} ${cl} minimum</div>`;
-  if (p2 && db2 && db2 >= minDB) h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 2: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${fmt$(db2)} DB</div>`;
-  else if (p2 && db2) h += `<div style="margin-bottom:3px;color:#c0392b"><span style="color:#888">Opt 2: </span>N/A — yields ${fmt$(db2)} DB, below ${fmt$(minDB)} ${cl} minimum</div>`;
-  if (p3 && db3 && db3 >= minDB) h += `<div><span style="color:#888">Opt 3: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5 = ${fmt$(db3)} DB (matches current)</div>`;
-  else if (p3 && db3) h += `<div style="color:#c0392b"><span style="color:#888">Opt 3: </span>N/A — yields ${fmt$(db3)} DB, below ${fmt$(minDB)} ${cl} minimum</div>`;
+  if (opts.o1DB) {
+    if (opts.o1Prem > 0)
+      h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 1: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(opts.o1Prem)}/yr x5, ${fmt$(opts.o1DB)} DB</div>`;
+    else
+      h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 1: </span>(${cl}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(opts.o1DB)} DB</div>`;
+  } else if (csv && f) {
+    h += `<div style="margin-bottom:3px;color:#c0392b"><span style="color:#888">Opt 1: </span>CSV too low to generate a valid option</div>`;
+  }
+  if (opts.showO2)
+    h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 2: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO2.prem)}/yr x5, ${fmt$(opts.showO2.db)} DB</div>`;
+  if (opts.showO3)
+    h += `<div><span style="color:#888">Opt 3: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO3.prem)}/yr x5, ${fmt$(opts.showO3.db)} DB</div>`;
   document.getElementById('opt-preview').innerHTML = h + '</div>';
   renderCarrierRec();
 }
@@ -982,6 +1033,9 @@ function recalcOptions() {
 // ─── FLAGS ───
 function updateFlags() {
   const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
+  const acc = parseFloat(document.getElementById('r-acc')?.value) || 0;
+  const cvForRor = acc > 0 ? acc : csv;
+  const priorYear = parseFloat(document.getElementById('r-prioryear')?.value) || 0;
   const db = parseFloat(document.getElementById('r-db')?.value) || 0;
   const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
   const tp = parseFloat(document.getElementById('r-totprem')?.value) || 0;
@@ -992,7 +1046,7 @@ function updateFlags() {
   const ci = document.getElementById('r-ci')?.value || 'no';
   const type = document.getElementById('r-type')?.value || 'Whole Life';
   const loanNum = parseFloat(loan), capNum = parseFloat(cap);
-  const ror = tp && yr ? (Math.pow(csv / tp, 1 / yr) - 1) * 100 : null;
+  const ror = tp && yr ? (Math.pow(cvForRor / tp, 1 / yr) - 1) * 100 : null;
   const age = parseInt(document.getElementById('f-age')?.value) || 0;
   const f = getDBFactor(age);
   const projDB0 = f && csv ? csv * f : 0;
@@ -1005,8 +1059,10 @@ function updateFlags() {
   const isUnderfunded = pr > 0 && db > 0 && (db / pr) > 20;
   if (isUnderfunded && projDB0 <= db)
     flags.push({ b: 1, t: 'Policy is under-funded: DB is high vs. low premiums', s: 'High DB-to-premium ratio indicates minimal funding' });
+  if (priorYear > 0 && cvForRor < priorYear)
+    flags.push({ b: 1, t: 'Cash value lost money over the last year, and future losses may become greater as the cost of insurance may increase.', s: `Prior year: ${fmt$(priorYear)} → current: ${fmt$(cvForRor)}` });
   if (ror !== null)
-    flags.push({ b: ror < 4 ? 1 : 0, t: `${ror < 0 ? 'Negative' : 'Low'} ROR: ${fmt$(tp)} total premiums vs. ${fmt$(csv)} CV, after ${Math.round(yr)} years = ${ror.toFixed(2)}% net annual ROR`, s: 'Calculated from extracted data' });
+    flags.push({ b: ror < 4 ? 1 : 0, t: `${ror < 0 ? 'Negative' : 'Low'} ROR: ${fmt$(tp)} total premiums vs. ${fmt$(cvForRor)} CV, after ${Math.round(yr)} years = ${ror.toFixed(2)}% net annual ROR`, s: 'Calculated from extracted data' });
   if (!isNaN(loanNum) && loanNum > 3)
     flags.push({ b: 1, t: `High loan rate: ${loanNum}%`, s: 'Exceeds 3% threshold' });
   if (type === 'Indexed Universal Life' && !isNaN(capNum) && capNum < 10)
@@ -1030,9 +1086,6 @@ function buildAdvDis() {
   const db = parseFloat(document.getElementById('r-db')?.value) || 0;
   const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
   const age = parseInt(document.getElementById('f-age')?.value) || 0;
-  const f = getDBFactor(age);
-  const db0 = f && csv ? Math.round(csv * f) : 0;
-  const db2 = f && csv && pr ? Math.round((csv + pr * 5) * f) : 0;
   const cap = selectedCarrier === 'AZ' ? '12.25%' : '11%';
   const m = {
     lapse: 'Policy lasts and grows throughout lifetime, instead of lapsing.',
@@ -1043,10 +1096,12 @@ function buildAdvDis() {
     caps: `Higher caps: S&P 500 cap is ${cap}.`,
     mkt: 'Eliminate market risk while maintaining market-like upside.'
   };
-  const minDB = selectedCarrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
+  const p2adv = parseFloat(document.getElementById('opt2')?.value) || pr;
+  const p3adv = parseFloat(document.getElementById('opt3')?.value) || 0;
+  const opts = calcOptData(csv, db, age, selectedCarrier, p2adv, p3adv);
   const adv = [];
-  if (db0 > db && db0 >= minDB) adv.push('Bigger DB with $0 additional premiums.');
-  if (db2 > db && db2 >= minDB && pr > 0) adv.push('Bigger DB with same annual premium.');
+  if (opts.o1Prem === 0 && opts.o1DB && opts.o1DB > db) adv.push('Bigger DB with $0 additional premiums.');
+  if (opts.showO2 && opts.showO2.db > db) adv.push('Bigger DB with same annual premium.');
   curDis.forEach(d => {
     const dl = d.toLowerCase();
     if (dl.includes('lapse')) adv.push(m.lapse);
@@ -1066,19 +1121,18 @@ function buildAdvDis() {
 function buildOnePager() {
   const client = document.getElementById('f-client').value || '(Client Name)';
   const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
+  const acc = parseFloat(document.getElementById('r-acc')?.value) || 0;
   const db = parseFloat(document.getElementById('r-db')?.value) || 0;
   const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
   const age = parseInt(document.getElementById('f-age')?.value) || 0;
-  const f = getDBFactor(age), c = selectedCarrier === 'AZ' ? 'AZ' : 'CL';
   const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
   const p3 = parseFloat(document.getElementById('opt3')?.value) || 0;
-  const minDB = selectedCarrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
-  const db0 = f ? Math.round(csv * f) : null;
-  const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
-  const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
-  const o1 = (db0 && db0 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(db0)} DB` : (db0 ? `N/A — ${fmt$(db0)} DB is below ${fmt$(minDB)} ${c} minimum` : `(${c}) 1035 ${fmt$(csv)}, $0 premiums, [DB] DB`);
-  const o2 = (p2 && db2 && db2 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)} x5, ${fmt$(db2)} DB` : '';
-  const o3 = (p3 && db3 && db3 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)} x5, ${fmt$(db3)} DB` : '';
+  const opts = calcOptData(csv, db, age, selectedCarrier, p2, p3);
+  const c = opts.c;
+  const csvDisplay = (acc && acc !== csv) ? `${fmt$(acc)} / ${fmt$(csv)}` : fmt$(csv || acc);
+  const o1 = opts.o1DB ? (opts.o1Prem > 0 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.o1Prem)}/yr x5, ${fmt$(opts.o1DB)} DB` : `(${c}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(opts.o1DB)} DB`) : '—';
+  const o2 = opts.showO2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO2.prem)}/yr x5, ${fmt$(opts.showO2.db)} DB` : '—';
+  const o3 = opts.showO3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO3.prem)}/yr x5, ${fmt$(opts.showO3.db)} DB` : '—';
   document.getElementById('op-preview-box').innerHTML = `
     <div class="op-header">
       <div>
@@ -1096,7 +1150,7 @@ function buildOnePager() {
     <div class="op-body">
       <div class="op-col">
         <div class="op-col-head">CURRENT POLICY</div>
-        <div class="op-field"><div class="op-field-label">Accumulation / Surrender Value:</div><div class="op-field-value">${fmt$(csv)}</div></div>
+        <div class="op-field"><div class="op-field-label">Accumulation / Surrender Value:</div><div class="op-field-value">${csvDisplay}</div></div>
         <div class="op-field"><div class="op-field-label">Death Benefit:</div><div class="op-field-value">${fmt$(db)}</div></div>
         <div class="op-field"><div class="op-field-label">Annualized Premiums:</div><div class="op-field-value">${pr ? fmt$(pr) : '$0'}</div></div>
         <div class="op-section-label">Disadvantages:</div>
@@ -1105,8 +1159,8 @@ function buildOnePager() {
       <div class="op-col op-col-right">
         <div class="op-col-head">1035 TO NEW POLICY</div>
         <div class="op-field"><div class="op-field-label">Option 1:</div><div class="op-field-value">${o1}</div></div>
-        <div class="op-field"><div class="op-field-label">Option 2: <em style="font-weight:400;color:#aaa">(if applicable)</em></div><div class="op-field-value">${o2 || '—'}</div></div>
-        <div class="op-field"><div class="op-field-label">Option 3: <em style="font-weight:400;color:#aaa">(if applicable)</em></div><div class="op-field-value">${o3 || '—'}</div></div>
+        <div class="op-field"><div class="op-field-label">Option 2: <em style="font-weight:400;color:#aaa">(if applicable)</em></div><div class="op-field-value">${o2}</div></div>
+        <div class="op-field"><div class="op-field-label">Option 3: <em style="font-weight:400;color:#aaa">(if applicable)</em></div><div class="op-field-value">${o3}</div></div>
         <div class="op-section-label">Advantages:</div>
         <ol class="op-list">${curAdv.map(a => `<li>${a}</li>`).join('')}</ol>
       </div>
@@ -1135,22 +1189,21 @@ function downloadPDF(override) {
   const o = override || {};
   const client = o.client ?? (document.getElementById('f-client').value || '(Client Name)');
   const csv = o.csv ?? (parseFloat(document.getElementById('r-csv')?.value) || 0);
+  const acc = o.acc ?? (parseFloat(document.getElementById('r-acc')?.value) || 0);
   const db = o.db ?? (parseFloat(document.getElementById('r-db')?.value) || 0);
   const pr = o.pr ?? (parseFloat(document.getElementById('r-prem')?.value) || 0);
   const age = o.age ?? (parseInt(document.getElementById('f-age')?.value) || 0);
   const carrier = o.carrier ?? selectedCarrier;
-  const f = getDBFactor(age), c = carrier === 'AZ' ? 'AZ' : 'CL';
   const p2 = o.p2 ?? (parseFloat(document.getElementById('opt2')?.value) || 0);
   const p3 = o.p3 ?? (parseFloat(document.getElementById('opt3')?.value) || 0);
   const pdfDis = o.dis ?? curDis;
   const pdfAdv = o.adv ?? curAdv;
-  const minDB = carrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
-  const db0 = f ? Math.round(csv * f) : null;
-  const db2 = f && p2 ? Math.round((csv + p2 * 5) * f) : null;
-  const db3 = f && p3 ? Math.round((csv + p3 * 5) * f) : null;
-  const o1 = (db0 && db0 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, $0 premiums = ${fmt$(db0)} DB` : (db0 ? `N/A — ${fmt$(db0)} DB is below ${fmt$(minDB)} ${c} minimum` : `(${c}) 1035 ${fmt$(csv)}, $0 premiums = [DB] DB`);
-  const o2 = (p2 && db2 && db2 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p2)}/yr x5 = ${fmt$(db2)} DB` : '';
-  const o3 = (p3 && db3 && db3 >= minDB) ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(p3)}/yr x5 = ${fmt$(db3)} DB` : '';
+  const opts = calcOptData(csv, db, age, carrier, p2, p3);
+  const c = opts.c;
+  const csvDisplay = (acc && acc !== csv) ? `${fmt$(acc)} / ${fmt$(csv)}` : fmt$(csv || acc);
+  const o1 = opts.o1DB ? (opts.o1Prem > 0 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.o1Prem)}/yr x5 = ${fmt$(opts.o1DB)} DB` : `(${c}) 1035 ${fmt$(csv)}, $0 premiums = ${fmt$(opts.o1DB)} DB`) : '';
+  const o2 = opts.showO2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO2.prem)}/yr x5 = ${fmt$(opts.showO2.db)} DB` : '';
+  const o3 = opts.showO3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO3.prem)}/yr x5 = ${fmt$(opts.showO3.db)} DB` : '';
 
   // ── HEADER ──
   doc.setFillColor(...NAVY);
@@ -1250,7 +1303,7 @@ function downloadPDF(override) {
 
   // ── LEFT COLUMN ──
   let ly = HEADER_H + 50;
-  ly = field(LPAD, ly, 'Accumulation/Surrender Value:', fmt$(csv));
+  ly = field(LPAD, ly, 'Accumulation/Surrender Value:', csvDisplay);
   ly = field(LPAD, ly, 'Death Benefit:', fmt$(db));
   ly = field(LPAD, ly, 'Annualized Premiums:', pr ? fmt$(pr) : '$0');
   ly += 4;

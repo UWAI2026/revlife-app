@@ -19,6 +19,7 @@ if database_url.startswith('postgres://'):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'revlife-change-in-prod')
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True, 'pool_recycle': 300}
 
 db = SQLAlchemy(app)
 anthropic_client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
@@ -287,6 +288,20 @@ with app.app_context():
                 conn.commit()
             except Exception:
                 pass
+        # Migrations tracking
+        try:
+            conn.execute(text('CREATE TABLE IF NOT EXISTS migrations (name VARCHAR(100) PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'))
+            conn.commit()
+        except Exception:
+            pass
+        try:
+            applied = {r[0] for r in conn.execute(text('SELECT name FROM migrations')).fetchall()}
+            if 'remove_sent_for_analysis_stage' not in applied:
+                conn.execute(text('UPDATE cases SET stage = stage - 1 WHERE stage >= 2'))
+                conn.execute(text("INSERT INTO migrations (name) VALUES ('remove_sent_for_analysis_stage')"))
+                conn.commit()
+        except Exception:
+            pass
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
