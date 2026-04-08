@@ -603,9 +603,32 @@ async function apiDelete(path) {
 }
 async function fetchCases() {
   const data = await apiGet('/api/cases');
-  casesCache = Array.isArray(data) ? data : [];
+  if (!Array.isArray(data)) {
+    if (data && (data.error === 'Unauthorized' || data.error === 'Invalid token')) {
+      clearToken(); doLogout();
+    }
+    casesCache = [];
+    return casesCache;
+  }
+  casesCache = data;
   return casesCache;
 }
+
+// Auto-restore session from stored token on page load
+window.addEventListener('DOMContentLoaded', async () => {
+  const t = getToken();
+  if (t) {
+    try {
+      const me = await apiGet('/api/me');
+      if (me && me.name && me.role) {
+        currentUser = me.name; currentRole = me.role;
+        launchApp();
+        return;
+      }
+    } catch (e) {}
+    clearToken();
+  }
+});
 
 // ─── AUTH ───
 function setAuthTab(tab) {
@@ -860,6 +883,11 @@ function populateExtractedFields(d) {
       if (lower.includes(k)) { sel.value = v; break; }
     }
   }
+  // Clear opt2/opt3 so they recalculate for this new case
+  document.getElementById('opt2').value = '';
+  document.getElementById('opt3').value = '';
+  const opt2note = document.getElementById('opt2-note');
+  if (opt2note) opt2note.textContent = '';
   set('r-carrier', d.carrier);
   set('r-acc', d.accumulationValue || d.csv);
   set('r-csv', d.csv);
@@ -874,6 +902,7 @@ function populateExtractedFields(d) {
   if (d.hasCI) document.getElementById('r-ci').value = d.hasCI;
   updateFlags();
   syncOpt2();
+  syncOpt3();
 }
 
 // ─── STEP NAVIGATION ───
@@ -959,9 +988,10 @@ function syncOpt3() {
   const age = parseInt(document.getElementById('f-age')?.value) || 0;
   const f = getDBFactor(age);
   const o3el = document.getElementById('opt3');
-  if (o3el && f && db && csv && !o3el.value) {
-    const needed = Math.round((db / f - csv) / 5);
+  if (o3el && f && db && csv) {
+    const needed = Math.ceil((db / f - csv) / 5);
     if (needed > 0) { o3el.value = needed; recalcOptions(); }
+    else { o3el.value = ''; recalcOptions(); }
   }
 }
 
@@ -1058,7 +1088,7 @@ function updateFlags() {
     flags.push({ b: 1, t: 'Cannot access DB for living benefits / chronic illness needs', s: 'No chronic illness or LTC rider found on policy' });
   const isUnderfunded = pr > 0 && db > 0 && (db / pr) > 20;
   if (isUnderfunded && projDB0 <= db)
-    flags.push({ b: 1, t: 'Policy is under-funded: DB is high vs. low premiums', s: 'High DB-to-premium ratio indicates minimal funding' });
+    flags.push({ b: 1, t: 'Policy is under-funded: DB is high vs. low premiums — this creates high/increasing cost of insurance.', s: 'High DB-to-premium ratio indicates minimal funding' });
   if (priorYear > 0 && cvForRor < priorYear)
     flags.push({ b: 1, t: 'Cash value lost money over the last year, and future losses may become greater as the cost of insurance may increase.', s: `Prior year: ${fmt$(priorYear)} → current: ${fmt$(cvForRor)}` });
   if (ror !== null)
@@ -1468,9 +1498,6 @@ async function buildCasesTable() {
     </tr>`).join('');
 }
 
-function redownloadPDFFromCase(id) {
-  showToast('Re-download from saved case coming in next update');
-}
 
 // ─── PIPELINE ───
 async function buildPipeline() {

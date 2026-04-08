@@ -126,6 +126,21 @@ def index():
     return send_from_directory('static', 'index.html')
 
 
+@app.route('/api/me', methods=['GET'])
+@require_auth
+def me():
+    u = request.user
+    return jsonify({'name': u['name'], 'role': u['role'], 'email': u['email']})
+
+
+@app.route('/api/db-status', methods=['GET'])
+def db_status():
+    db_url = app.config['SQLALCHEMY_DATABASE_URI']
+    db_type = 'postgresql' if 'postgresql' in db_url else 'sqlite'
+    return jsonify({'type': db_type, 'persistent': db_type == 'postgresql',
+                    'warning': None if db_type == 'postgresql' else 'Using SQLite — cases will be lost on redeploy. Set DATABASE_URL in Railway env vars.'})
+
+
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json or {}
@@ -269,6 +284,10 @@ def analyze():
 
 
 # ─── INIT ───
+
+import sys
+if 'postgresql' not in os.environ.get('DATABASE_URL', ''):
+    print('WARNING: DATABASE_URL not set or not PostgreSQL — using SQLite. Cases WILL be lost on redeploy!', file=sys.stderr)
 
 with app.app_context():
     db.create_all()
