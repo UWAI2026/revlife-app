@@ -420,8 +420,22 @@ input,select,textarea,button{font-family:inherit}
           </div>
         </div>
         <div class="two-col">
-          <div class="card"><div class="card-title">Disadvantages</div><div class="adv-list" id="dis-list"></div></div>
-          <div class="card"><div class="card-title">Advantages (auto-matched)</div><div class="adv-list" id="adv-list"></div></div>
+          <div class="card">
+            <div class="card-title">Disadvantages</div>
+            <div class="adv-list" id="dis-list"></div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <input id="manual-dis-input" type="text" placeholder="Add disadvantage…" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px">
+              <button class="btn" style="padding:6px 12px;font-size:12px" onclick="addManualDis()">Add</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Advantages (auto-matched)</div>
+            <div class="adv-list" id="adv-list"></div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <input id="manual-adv-input" type="text" placeholder="Add advantage…" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px">
+              <button class="btn" style="padding:6px 12px;font-size:12px" onclick="addManualAdv()">Add</button>
+            </div>
+          </div>
         </div>
         <div class="btn-row">
           <button class="btn btn-gold" onclick="goStep(4)">Generate One-Pager</button>
@@ -568,6 +582,7 @@ let currentRole = null;
 let selectedCarrier = 'AZ';
 let carrierManuallySelected = false;
 let curDis = [], curAdv = [];
+let manualDis = [], manualAdv = [];
 let uploadedFiles = [];
 let modalCaseId = null;
 
@@ -883,9 +898,11 @@ function populateExtractedFields(d) {
       if (lower.includes(k)) { sel.value = v; break; }
     }
   }
-  // Clear opt2/opt3 so they recalculate for this new case
+  // Clear opt2/opt3 and manual entries for this new case
   document.getElementById('opt2').value = '';
   document.getElementById('opt3').value = '';
+  manualDis = [];
+  manualAdv = [];
   const opt2note = document.getElementById('opt2-note');
   if (opt2note) opt2note.textContent = '';
   set('r-carrier', d.carrier);
@@ -1086,6 +1103,13 @@ function updateFlags() {
     flags.push({ b: 1, t: `Policy will lapse: ${lapse}`, s: 'Lapse date/age found in document' });
   if (ci === 'no')
     flags.push({ b: 1, t: 'Cannot access DB for living benefits / chronic illness needs', s: 'No chronic illness or LTC rider found on policy' });
+  const minDB = selectedCarrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
+  const p2val = parseFloat(document.getElementById('opt2')?.value) || pr;
+  const db2val = f && p2val ? Math.round((csv + p2val * 5) * f) : 0;
+  const canBeatWithZero = projDB0 >= minDB && projDB0 > db;
+  const canBeatWithSamePrem = !canBeatWithZero && p2val > 0 && db2val >= minDB && db2val > db;
+  if (canBeatWithZero || canBeatWithSamePrem)
+    flags.push({ b: 1, t: 'Low Death Benefit — a 1035 exchange provides a higher death benefit ' + (canBeatWithZero ? 'with no additional premiums.' : 'with the same premiums.'), s: `Current DB: ${fmt$(db)}, Projected: ${fmt$(canBeatWithZero ? Math.round(projDB0) : db2val)}` });
   const isUnderfunded = pr > 0 && db > 0 && (db / pr) > 20;
   if (isUnderfunded && projDB0 <= db)
     flags.push({ b: 1, t: 'Policy is under-funded: DB is high vs. low premiums — this creates high/increasing cost of insurance.', s: 'High DB-to-premium ratio indicates minimal funding' });
@@ -1143,9 +1167,35 @@ function buildAdvDis() {
     if (dl.includes('market risk')) adv.push(m.mkt);
   });
   curAdv = [...new Set(adv)];
-  document.getElementById('dis-list').innerHTML = curDis.map(d => `<div class="adv-item d">${d}</div>`).join('') || '<div style="font-size:12px;color:#888">None flagged</div>';
-  document.getElementById('adv-list').innerHTML = curAdv.map(a => `<div class="adv-item a">${a}</div>`).join('');
+  document.getElementById('dis-list').innerHTML =
+    curDis.map(d => `<div class="adv-item d">${d}</div>`).join('') +
+    manualDis.map((d, i) => `<div class="adv-item d" style="display:flex;justify-content:space-between;align-items:center">${d}<span onclick="removeManualDis(${i})" style="cursor:pointer;margin-left:8px;color:#999;font-size:14px">×</span></div>`).join('') ||
+    '<div style="font-size:12px;color:#888">None flagged</div>';
+  document.getElementById('adv-list').innerHTML =
+    curAdv.map(a => `<div class="adv-item a">${a}</div>`).join('') +
+    manualAdv.map((a, i) => `<div class="adv-item a" style="display:flex;justify-content:space-between;align-items:center">${a}<span onclick="removeManualAdv(${i})" style="cursor:pointer;margin-left:8px;color:#999;font-size:14px">×</span></div>`).join('');
 }
+
+function addManualDis() {
+  const el = document.getElementById('manual-dis-input');
+  const val = el.value.trim();
+  if (!val) return;
+  manualDis.push(val);
+  el.value = '';
+  buildAdvDis();
+}
+
+function addManualAdv() {
+  const el = document.getElementById('manual-adv-input');
+  const val = el.value.trim();
+  if (!val) return;
+  manualAdv.push(val);
+  el.value = '';
+  buildAdvDis();
+}
+
+function removeManualDis(i) { manualDis.splice(i, 1); buildAdvDis(); }
+function removeManualAdv(i) { manualAdv.splice(i, 1); buildAdvDis(); }
 
 // ─── ONE-PAGER ───
 function buildOnePager() {
