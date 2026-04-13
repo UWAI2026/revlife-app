@@ -1234,7 +1234,7 @@ function buildOnePager() {
         <div class="op-field"><div class="op-field-label">Death Benefit:</div><div class="op-field-value">${fmt$(db)}</div></div>
         <div class="op-field"><div class="op-field-label">Annualized Premiums:</div><div class="op-field-value">${pr ? fmt$(pr) : '$0'}</div></div>
         <div class="op-section-label">Disadvantages:</div>
-        <ol class="op-list">${curDis.map(d => `<li>${d}</li>`).join('')}</ol>
+        <ol class="op-list">${[...curDis, ...manualDis].map(d => `<li>${d}</li>`).join('')}</ol>
       </div>
       <div class="op-col op-col-right">
         <div class="op-col-head">1035 TO NEW POLICY</div>
@@ -1242,7 +1242,7 @@ function buildOnePager() {
         <div class="op-field"><div class="op-field-label">Option 2: <em style="font-weight:400;color:#aaa">(if applicable)</em></div><div class="op-field-value">${o2}</div></div>
         <div class="op-field"><div class="op-field-label">Option 3: <em style="font-weight:400;color:#aaa">(if applicable)</em></div><div class="op-field-value">${o3}</div></div>
         <div class="op-section-label">Advantages:</div>
-        <ol class="op-list">${curAdv.map(a => `<li>${a}</li>`).join('')}</ol>
+        <ol class="op-list">${[...curAdv, ...manualAdv].map(a => `<li>${a}</li>`).join('')}</ol>
       </div>
     </div>
     <div class="op-footer">By contacting <span class="op-fillable">_________________________ (Agent License #)</span> you may be offered information regarding the purchase of insurance products, including fixed index annuities and life insurance. For agent use only. This is not an illustration, guarantee of performance, or an offer of insurance. This is an educational tool and purely hypothetical. Values are subject to change based on underwriting results and are not guaranteed. By starting a new policy, surrender charges, premium loads and policy charges may apply. Disadvantages of a new policy may not be included in the details above.</div>`;
@@ -1506,8 +1506,8 @@ async function saveCase() {
     annualPremium: parseFloat(document.getElementById('r-prem')?.value) || 0,
     opt2Premium: parseFloat(document.getElementById('opt2')?.value) || 0,
     opt3Premium: parseFloat(document.getElementById('opt3')?.value) || 0,
-    dis: [...curDis],
-    adv: [...curAdv],
+    dis: [...curDis, ...manualDis],
+    adv: [...curAdv, ...manualAdv],
     opt1: document.getElementById('opt-preview')?.innerText || ''
   });
   if (res.error || !res.id) {
