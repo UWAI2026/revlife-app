@@ -1276,8 +1276,8 @@ function downloadPDF(override) {
   const carrier = o.carrier ?? selectedCarrier;
   const p2 = o.p2 ?? (parseFloat(document.getElementById('opt2')?.value) || 0);
   const p3 = o.p3 ?? (parseFloat(document.getElementById('opt3')?.value) || 0);
-  const pdfDis = o.dis ?? curDis;
-  const pdfAdv = o.adv ?? curAdv;
+  const pdfDis = o.dis ?? [...curDis, ...manualDis];
+  const pdfAdv = o.adv ?? [...curAdv, ...manualAdv];
   const opts = calcOptData(csv, db, age, carrier, p2, p3);
   const c = opts.c;
   const csvDisplay = (acc && acc !== csv) ? `${fmt$(acc)} / ${fmt$(csv)}` : fmt$(csv || acc);
