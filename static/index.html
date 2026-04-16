@@ -1653,12 +1653,23 @@ async function buildLeaderboard(data) {
   const cases = await fetchCases();
   const merged = [...LB_BASE];
   cases.forEach(c => {
-    const agentL = c.agent.toLowerCase();
-    const existing = merged.find(r =>
-      r[0].toLowerCase().includes(agentL.split(' ')[0]) ||
-      agentL.includes(r[0].split(',')[0].toLowerCase().trim()) ||
-      (r[1] && (r[1].toLowerCase().includes(agentL.split(' ')[0]) || agentL.includes(r[1].split(' ')[0].toLowerCase())))
-    );
+    const parts = c.agent.trim().split(' ');
+    const firstName = parts[0].toLowerCase();
+    const lastName = parts[parts.length - 1].toLowerCase();
+    const existing = merged.find(r => {
+      const rLast = r[0].split(',')[0].toLowerCase().trim();
+      const rFirst = r[0].split(',')[1]?.toLowerCase().trim() || '';
+      // Match by last name + first name on primary agent
+      if (rLast === lastName && (!rFirst || rFirst.startsWith(firstName))) return true;
+      // Match by subagent full name
+      if (r[1]) {
+        const subParts = r[1].trim().split(' ');
+        const subFirst = subParts[0].toLowerCase();
+        const subLast = subParts[subParts.length - 1].toLowerCase();
+        if (subLast === lastName && subFirst.startsWith(firstName)) return true;
+      }
+      return false;
+    });
     if (existing) existing[2]++;
     else merged.push([c.agent, '', 1]);
   });
@@ -1686,18 +1697,27 @@ async function filterLB(q) {
   const cases = casesCache.length ? casesCache : await fetchCases();
   const merged = [...LB_BASE];
   cases.forEach(c => {
-    const agentL = c.agent.toLowerCase();
-    const existing = merged.find(r =>
-      r[0].toLowerCase().includes(agentL.split(' ')[0]) ||
-      agentL.includes(r[0].split(',')[0].toLowerCase().trim()) ||
-      (r[1] && (r[1].toLowerCase().includes(agentL.split(' ')[0]) || agentL.includes(r[1].split(' ')[0].toLowerCase())))
-    );
+    const parts = c.agent.trim().split(' ');
+    const firstName = parts[0].toLowerCase();
+    const lastName = parts[parts.length - 1].toLowerCase();
+    const existing = merged.find(r => {
+      const rLast = r[0].split(',')[0].toLowerCase().trim();
+      const rFirst = r[0].split(',')[1]?.toLowerCase().trim() || '';
+      if (rLast === lastName && (!rFirst || rFirst.startsWith(firstName))) return true;
+      if (r[1]) {
+        const subParts = r[1].trim().split(' ');
+        const subFirst = subParts[0].toLowerCase();
+        const subLast = subParts[subParts.length - 1].toLowerCase();
+        if (subLast === lastName && subFirst.startsWith(firstName)) return true;
+      }
+      return false;
+    });
     if (existing) existing[2]++;
     else merged.push([c.agent, '', 1]);
   });
   merged.sort((a, b) => b[2] - a[2]);
   const max = merged[0]?.[2] || 1;
-  const filtered = q ? merged.filter(r => r[0].toLowerCase().includes(q.toLowerCase()) || r[1].toLowerCase().includes(q.toLowerCase())) : merged;
+  const filtered = q ? merged.filter(r => r[0].toLowerCase().includes(q.toLowerCase()) || (r[1] || '').toLowerCase().includes(q.toLowerCase())) : merged;
   renderLB(filtered, max);
 }
 
