@@ -363,6 +363,7 @@ input,select,textarea,button{font-family:inherit}
             <div><label class="fl">Total premiums paid ($)</label><input class="fi" id="r-totprem" placeholder="e.g. 30720" oninput="updateFlags()"/></div>
             <div><label class="fl">Years in force</label><input class="fi" id="r-years" placeholder="e.g. 32" oninput="updateFlags()"/></div>
             <div><label class="fl">Prior year cash value ($)</label><input class="fi" id="r-prioryear" placeholder="e.g. 72000 (from last year's statement)" oninput="updateFlags()"/></div>
+            <div><label class="fl">Outstanding policy loan ($)</label><input class="fi" id="r-outloan" placeholder="e.g. 12000 or leave blank if none" oninput="updateFlags()"/></div>
             <div><label class="fl">Loan rate (% or "not listed")</label><input class="fi" id="r-loan" placeholder="e.g. 5 or not listed" oninput="updateFlags()"/></div>
             <div><label class="fl">S&P 500 cap rate (IUL only, % or "n/a")</label><input class="fi" id="r-cap" placeholder="e.g. 9.5 or n/a" oninput="updateFlags()"/></div>
             <div><label class="fl">Lapse age / years remaining</label><input class="fi" id="r-lapse" placeholder="e.g. age 78 or not shown" oninput="updateFlags()"/></div>
@@ -806,6 +807,8 @@ yearsInForce: (number) How many years the policy has been active. Look for: Poli
 
 totalPremiumsPaid: (number) Total premiums paid to date. Look for: Cost Basis, Total Premiums Paid, Cumulative Premiums, Premium Outlay. IMPORTANT: If this field is NOT explicitly listed anywhere in the document, calculate it as: annualPremium × yearsInForce. Never return null for this field if you have annualPremium and yearsInForce. Return digits only.
 
+outstandingLoan: (number) Any outstanding policy loan balance. Look for: Policy Loan, Loan Balance, Outstanding Loan, Loan Amount. Return digits only, or 0 if none.
+
 loanRate: (string or number) The policy loan interest rate. Look for: Loan Rate, Loan Interest Rate, Policy Loan Rate. If not listed anywhere in the document, return the string "not listed". Never return null.
 
 capRate: (number or string) For IUL policies only: the S&P 500 cap rate or index cap. Return as a number (e.g. 9.5). For all other policy types return "n/a".
@@ -817,7 +820,7 @@ hasCI: (string) Return "yes" if the document lists any of: Chronic Illness Rider
 notes: (string) Any other relevant observations, warnings, or unusual features of the policy.
 
 CRITICAL RULES:
-- Never return null for csv, accumulationValue, db, annualPremium, loanRate, or hasCI — use 0 or "not listed" if truly absent.
+- Never return null for csv, accumulationValue, db, annualPremium, outstandingLoan, loanRate, or hasCI — use 0 or "not listed" if truly absent.
 - For totalPremiumsPaid: always calculate annualPremium × yearsInForce if not explicitly stated.
 - For multiple policies: SUM csv, accumulationValue, db, and annualPremium across all policies.
 - Return ONLY the JSON object. No explanation, no markdown.`
@@ -897,9 +900,10 @@ function populateExtractedFields(d) {
       if (lower.includes(k)) { sel.value = v; break; }
     }
   }
-  // Clear opt2/opt3 and manual entries for this new case
+  // Clear opt2/opt3, loan, and manual entries for this new case
   document.getElementById('opt2').value = '';
   document.getElementById('opt3').value = '';
+  document.getElementById('r-outloan').value = '';
   manualDis = [];
   manualAdv = [];
   const opt2note = document.getElementById('opt2-note');
@@ -912,6 +916,7 @@ function populateExtractedFields(d) {
   set('r-totprem', d.totalPremiumsPaid);
   set('r-years', d.yearsInForce);
   if (d.priorYearValue) set('r-prioryear', d.priorYearValue);
+  if (d.outstandingLoan) set('r-outloan', d.outstandingLoan);
   set('r-loan', d.loanRate);
   set('r-cap', d.capRate);
   set('r-lapse', d.lapseInfo);
@@ -1208,7 +1213,9 @@ function buildOnePager() {
   const p3 = parseFloat(document.getElementById('opt3')?.value) || 0;
   const opts = calcOptData(csv, db, age, selectedCarrier, p2, p3);
   const c = opts.c;
-  const csvDisplay = (acc && acc !== csv) ? `${fmt$(acc)} / ${fmt$(csv)}` : fmt$(csv || acc);
+  const outloan = parseFloat(document.getElementById('r-outloan')?.value) || 0;
+  const loanSuffix = outloan ? ` (${fmt$(outloan)} outstanding loan)` : '';
+  const csvDisplay = ((acc && acc !== csv) ? `${fmt$(acc)} / ${fmt$(csv)}` : fmt$(csv || acc)) + loanSuffix;
   const o1 = opts.o1DB ? (opts.o1Prem > 0 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.o1Prem)}/yr x5, ${fmt$(opts.o1DB)} DB` : `(${c}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(opts.o1DB)} DB`) : '—';
   const o2 = opts.showO2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO2.prem)}/yr x5, ${fmt$(opts.showO2.db)} DB` : '—';
   const o3 = opts.showO3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO3.prem)}/yr x5, ${fmt$(opts.showO3.db)} DB` : '—';
@@ -1279,7 +1286,9 @@ function downloadPDF(override) {
   const pdfAdv = o.adv ?? [...curAdv, ...manualAdv];
   const opts = calcOptData(csv, db, age, carrier, p2, p3);
   const c = opts.c;
-  const csvDisplay = (acc && acc !== csv) ? `${fmt$(acc)} / ${fmt$(csv)}` : fmt$(csv || acc);
+  const outloan = o.outloan ?? (parseFloat(document.getElementById('r-outloan')?.value) || 0);
+  const loanSuffix = outloan ? ` (${fmt$(outloan)} outstanding loan)` : '';
+  const csvDisplay = ((acc && acc !== csv) ? `${fmt$(acc)} / ${fmt$(csv)}` : fmt$(csv || acc)) + loanSuffix;
   const o1 = opts.o1DB ? (opts.o1Prem > 0 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.o1Prem)}/yr x5 = ${fmt$(opts.o1DB)} DB` : `(${c}) 1035 ${fmt$(csv)}, $0 premiums = ${fmt$(opts.o1DB)} DB`) : '';
   const o2 = opts.showO2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO2.prem)}/yr x5 = ${fmt$(opts.showO2.db)} DB` : '';
   const o3 = opts.showO3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO3.prem)}/yr x5 = ${fmt$(opts.showO3.db)} DB` : '';
@@ -1643,7 +1652,12 @@ async function buildLeaderboard(data) {
   const cases = await fetchCases();
   const merged = [...LB_BASE];
   cases.forEach(c => {
-    const existing = merged.find(r => r[0].toLowerCase().includes(c.agent.split(' ')[0].toLowerCase()) || c.agent.toLowerCase().includes(r[0].split(',')[0].toLowerCase().trim()));
+    const agentL = c.agent.toLowerCase();
+    const existing = merged.find(r =>
+      r[0].toLowerCase().includes(agentL.split(' ')[0]) ||
+      agentL.includes(r[0].split(',')[0].toLowerCase().trim()) ||
+      (r[1] && (r[1].toLowerCase().includes(agentL.split(' ')[0]) || agentL.includes(r[1].split(' ')[0].toLowerCase())))
+    );
     if (existing) existing[2]++;
     else merged.push([c.agent, '', 1]);
   });
@@ -1671,7 +1685,12 @@ async function filterLB(q) {
   const cases = casesCache.length ? casesCache : await fetchCases();
   const merged = [...LB_BASE];
   cases.forEach(c => {
-    const existing = merged.find(r => r[0].toLowerCase().includes(c.agent.split(' ')[0].toLowerCase()));
+    const agentL = c.agent.toLowerCase();
+    const existing = merged.find(r =>
+      r[0].toLowerCase().includes(agentL.split(' ')[0]) ||
+      agentL.includes(r[0].split(',')[0].toLowerCase().trim()) ||
+      (r[1] && (r[1].toLowerCase().includes(agentL.split(' ')[0]) || agentL.includes(r[1].split(' ')[0].toLowerCase())))
+    );
     if (existing) existing[2]++;
     else merged.push([c.agent, '', 1]);
   });
