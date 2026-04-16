@@ -793,29 +793,29 @@ policyType: (string) One of the four values above. Default to "Variable Life" if
 
 carrier: (string) The insurance company name. Look in the header, letterhead, or "issued by" field.
 
-accumulationValue: (number) The accumulation or cash value BEFORE surrender charges. For Whole Life: use the TOTAL cash value or the largest cash value shown — NOT base cash value alone; include paid-up additions and any rider values. Look for: Accumulation Value, Account Value, Cash Value, Total Cash Value, Fund Value, Policy Value. Return digits only.
+accumulationValue: (number) The accumulation or cash value BEFORE surrender charges. For Whole Life: use the TOTAL cash value or the largest cash value shown — NOT base cash value alone; include paid-up additions and any rider values. Look for: Accumulation Value, Account Value, Cash Value, Total Cash Value, Fund Value, Policy Value, Base Policy Accumulation Value. IMPORTANT for VUL/Lincoln in-force illustrations: look in the "Input Summary - Inforce" or "Current Policy Information" section for "Base policy accumulation value". Return digits only.
 
-csv: (number) The NET surrender value AFTER surrender charges. Look for: Net Surrender Value, Cash Surrender Value, Surrender Value. If there are NO surrender charges, set this equal to accumulationValue. Return digits only.
+csv: (number) The NET surrender value AFTER surrender charges. Look for: Net Surrender Value, Cash Surrender Value, Surrender Value. For VUL in-force illustrations: if a surrender charge schedule is shown, subtract the current year's surrender charge from the accumulation value. If there are NO surrender charges, set this equal to accumulationValue. Return digits only.
 
 priorYearValue: (number) The cash or accumulation value from the PRIOR year (12 months ago). Look for: Prior Year Value, Last Year Value, Beginning of Year Value, Previous Year Cash Value, or a table comparing last year vs. this year. Return digits only, or 0 if not shown.
 
-db: (number) The current death benefit or face amount. Look for: Death Benefit, Face Amount, Total Death Benefit, Coverage Amount, Insurance Amount. Return digits only.
+db: (number) The current death benefit or face amount. Look for: Death Benefit, Face Amount, Total Death Benefit, Coverage Amount, Insurance Amount, Base Specified Amount, Initial Death Benefit. Return digits only.
 
-annualPremium: (number) The annual or annualized premium. Look for: Annual Premium, Planned Premium, Annualized Premium, Scheduled Premium, Modal Premium (then annualize it — multiply monthly by 12, quarterly by 4, semi-annual by 2). Return digits only.
+annualPremium: (number) The annual or annualized premium. Look for: Annual Premium, Planned Premium, Annualized Premium, Scheduled Premium, Modal Premium, Base Scheduled Annual Premium (then annualize it — multiply monthly by 12, quarterly by 4, semi-annual by 2). For VUL in-force illustrations: look in the ledger tables for the repeating "Net Annual Outlay" or "Annual Premium Outlay" amount — use the most common non-zero value. Return digits only.
 
-yearsInForce: (number) How many years the policy has been active. Look for: Policy Year, Years In Force, Issue Date (then calculate years from issue date to today). Return a number only.
+yearsInForce: (number) How many years the policy has been active. Look for: Policy Year, Years In Force, Issue Date (then calculate years from issue date to today). For VUL illustrations showing "Issue date" and "Inforce date", calculate the difference. Return a number only.
 
-totalPremiumsPaid: (number) Total premiums paid to date. Look for: Cost Basis, Total Premiums Paid, Cumulative Premiums, Premium Outlay. IMPORTANT: If this field is NOT explicitly listed anywhere in the document, calculate it as: annualPremium × yearsInForce. Never return null for this field if you have annualPremium and yearsInForce. Return digits only.
+totalPremiumsPaid: (number) Total premiums paid to date. Look for: Cost Basis, Total Premiums Paid, Cumulative Premiums, Premium Outlay. For VUL/Lincoln in-force illustrations: look in "Input Summary - Inforce" or "Current Policy Information" for "Total premiums paid". IMPORTANT: If this field is NOT explicitly listed anywhere in the document, calculate it as: annualPremium × yearsInForce. Never return null for this field if you have annualPremium and yearsInForce. Return digits only.
 
-outstandingLoan: (number) Any outstanding policy loan balance. Look for: Policy Loan, Loan Balance, Outstanding Loan, Loan Amount. Return digits only, or 0 if none.
+outstandingLoan: (number) Any outstanding policy loan balance. Look for: Policy Loan, Loan Balance, Outstanding Loan, Loan Amount, Base Policy Loan Balance. Return digits only, or 0 if none.
 
-loanRate: (string or number) The policy loan interest rate. Look for: Loan Rate, Loan Interest Rate, Policy Loan Rate. If not listed anywhere in the document, return the string "not listed". Never return null.
+loanRate: (string or number) The policy loan interest rate. Look for: Loan Rate, Loan Interest Rate, Policy Loan Rate, fixed loan rate. If not listed anywhere in the document, return the string "not listed". Never return null.
 
 capRate: (number or string) For IUL policies only: the S&P 500 cap rate or index cap. Return as a number (e.g. 9.5). For all other policy types return "n/a".
 
-lapseInfo: (string) Any lapse projection — look for: Lapse Age, Policy Lapses At Age, Lapse Year, Projected Lapse. If not shown return "not shown".
+lapseInfo: (string) Any lapse projection — look for: Lapse Age, Policy Lapses At Age, Lapse Year, Projected Lapse. For VUL in-force illustrations: look in the ledger tables for where values show "Lapsed" — extract the age at which this occurs. If not shown return "not shown".
 
-hasCI: (string) Return "yes" if the document lists any of: Chronic Illness Rider, Accelerated Death Benefit, LTC Rider, Long-Term Care Rider, Terminal Illness Rider, Critical Illness Rider. Otherwise return "no".
+hasCI: (string) Return "yes" if the document lists any of: Chronic Illness Rider, Accelerated Death Benefit (ABR), LTC Rider, Long-Term Care Rider, Terminal Illness Rider, Critical Illness Rider, Care Coverage Accelerated Benefits Rider (CCABR), LifeAssure Accelerated Benefits Rider, or any rider that accelerates the death benefit for chronic illness or long-term care. Otherwise return "no".
 
 notes: (string) Any other relevant observations, warnings, or unusual features of the policy.
 
@@ -823,6 +823,7 @@ CRITICAL RULES:
 - Never return null for csv, accumulationValue, db, annualPremium, outstandingLoan, loanRate, or hasCI — use 0 or "not listed" if truly absent.
 - For totalPremiumsPaid: always calculate annualPremium × yearsInForce if not explicitly stated.
 - For multiple policies: SUM csv, accumulationValue, db, and annualPremium across all policies.
+- For VUL/Lincoln in-force illustrations: the most reliable values are in the "Input Summary - Inforce" section (usually near the end of the document). Prioritize "Base policy accumulation value" for accumulationValue, "Total premiums paid" for totalPremiumsPaid, "Base policy loan balance" for outstandingLoan, and "Base specified amount" for db. Then derive csv by subtracting the applicable surrender charge from the accumulation value.
 - Return ONLY the JSON object. No explanation, no markdown.`
     });
 
