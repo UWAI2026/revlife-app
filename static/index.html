@@ -1161,7 +1161,7 @@ function buildAdvDis() {
   const p3adv = parseFloat(document.getElementById('opt3')?.value) || 0;
   const opts = calcOptData(csv, db, age, selectedCarrier, p2adv, p3adv);
   const adv = [];
-  if (opts.o1Prem === 0 && opts.o1DB && opts.o1DB > db) adv.push('Bigger DB with $0 additional premiums.');
+  if (opts.o1Prem === 0 && opts.o1DB && opts.o1DB > db) adv.push('Bigger DB with no additional premiums.');
   if (pr > 0 && opts.showO2 && opts.showO2.db > db) adv.push('Bigger DB with same annual premium.');
   curDis.forEach(d => {
     const dl = d.toLowerCase();
