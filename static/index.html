@@ -1034,7 +1034,8 @@ function calcOptData(csv, currentDB, age, carrier, p2, p3) {
     if (db0 >= minDB) { o1DB = db0; }
     else {
       o1Prem = Math.ceil((minDB / f - csv) / 5);
-      if (o1Prem > 0) o1DB = Math.round((csv + o1Prem * 5) * f);
+      // Snap to minDB — premium was sized to hit exactly minDB, any overshoot is rounding artifact
+      if (o1Prem > 0) o1DB = minDB;
     }
   }
 
@@ -1042,13 +1043,14 @@ function calcOptData(csv, currentDB, age, carrier, p2, p3) {
   const db2raw = (f && p2) ? Math.round((csv + p2 * 5) * f) : null;
   const o2Valid = !!(p2 && db2raw && db2raw >= minDB);
 
-  // Opt 3 raw (match current DB)
+  // Opt 3 raw (match current DB) — snap to currentDB if within $10 (ceiling rounding artifact)
   const db3raw = (f && p3) ? Math.round((csv + p3 * 5) * f) : null;
-  const o3Valid = !!(p3 && db3raw && db3raw >= minDB);
+  const db3display = (db3raw && currentDB && Math.abs(db3raw - currentDB) <= 10) ? currentDB : db3raw;
+  const o3Valid = !!(p3 && db3display && db3display >= minDB);
 
   // If opt2 blank, move opt3 into opt2 slot
-  const showO2 = o2Valid ? { prem: p2, db: db2raw } : (o3Valid ? { prem: p3, db: db3raw } : null);
-  const showO3 = (o2Valid && o3Valid) ? { prem: p3, db: db3raw } : null;
+  const showO2 = o2Valid ? { prem: p2, db: db2raw } : (o3Valid ? { prem: p3, db: db3display } : null);
+  const showO3 = (o2Valid && o3Valid) ? { prem: p3, db: db3display } : null;
 
   return { f, c, minDB, db0, o1Prem, o1DB, showO2, showO3 };
 }
@@ -1160,7 +1162,7 @@ function buildAdvDis() {
   const opts = calcOptData(csv, db, age, selectedCarrier, p2adv, p3adv);
   const adv = [];
   if (opts.o1Prem === 0 && opts.o1DB && opts.o1DB > db) adv.push('Bigger DB with $0 additional premiums.');
-  if (opts.showO2 && opts.showO2.db > db) adv.push('Bigger DB with same annual premium.');
+  if (pr > 0 && opts.showO2 && opts.showO2.db > db) adv.push('Bigger DB with same annual premium.');
   curDis.forEach(d => {
     const dl = d.toLowerCase();
     if (dl.includes('lapse')) adv.push(m.lapse);
