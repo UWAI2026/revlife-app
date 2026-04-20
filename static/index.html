@@ -1563,16 +1563,16 @@ async function buildCasesTable() {
 // ─── PIPELINE ───
 async function buildPipeline() {
   const cases = await fetchCases();
-  const active = cases.filter(c => c.stage < 6).length;
-  const submitted = cases.filter(c => c.stage === 6).length;
-  const notSubmitted = cases.filter(c => c.stage === 7).length;
+  const active = cases.filter(c => c.stage < 5).length;
+  const submitted = cases.filter(c => c.stage === 5).length;
+  const notSubmitted = cases.filter(c => c.stage === 6).length;
   const total = submitted + notSubmitted;
   document.getElementById('pipe-active').textContent = active;
   document.getElementById('pipe-submitted').textContent = submitted;
   document.getElementById('pipe-rate').textContent = total ? Math.round(submitted / total * 100) + '%' : '—';
 
   let html = '';
-  for (let s = 1; s <= 7; s++) {
+  for (let s = 1; s <= 6; s++) {
     const stageCases = cases.filter(c => c.stage === s);
     const now2 = Date.now();
     const cards = stageCases.map(c => {
@@ -1617,7 +1617,7 @@ function openModal(id) {
 }
 
 function toggleReasonField(stage) {
-  document.getElementById('modal-reason-wrap').style.display = stage === 7 ? '' : 'none';
+  document.getElementById('modal-reason-wrap').style.display = stage === 6 ? '' : 'none';
 }
 
 function closeModal() {
