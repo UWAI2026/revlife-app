@@ -766,7 +766,7 @@ async function runAIAnalysis() {
         document.getElementById('ai-loader-text').textContent = `Converting PDF ${i+1} to images...`;
         const pageImages = await pdfToImages(f);
         for (const imgData of pageImages) {
-          content.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: imgData } });
+          content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imgData } });
         }
       } else {
         const b64 = await fileToBase64(f);
@@ -866,16 +866,20 @@ async function pdfToImages(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const images = [];
-  const maxPages = Math.min(pdf.numPages, 4);
-  for (let p = 1; p <= maxPages; p++) {
+  const total = pdf.numPages;
+  // Send first 4 pages + last 5 pages (deduped) so OPT appendix / Input Summary sections at end are always included
+  const firstPages = [1, 2, 3, 4].filter(p => p <= total);
+  const lastPages = [total - 4, total - 3, total - 2, total - 1, total].filter(p => p > 4 && p <= total);
+  const pageNums = [...new Set([...firstPages, ...lastPages])];
+  for (const p of pageNums) {
     const page = await pdf.getPage(p);
-    const viewport = page.getViewport({ scale: 2.0 });
+    const viewport = page.getViewport({ scale: 1.5 });
     const canvas = document.createElement('canvas');
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const ctx = canvas.getContext('2d');
     await page.render({ canvasContext: ctx, viewport }).promise;
-    const dataUrl = canvas.toDataURL('image/png');
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     images.push(dataUrl.split(',')[1]);
   }
   return images;
