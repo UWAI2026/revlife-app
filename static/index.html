@@ -879,8 +879,14 @@ async function pdfToImages(file) {
     canvas.height = viewport.height;
     const ctx = canvas.getContext('2d');
     await page.render({ canvasContext: ctx, viewport }).promise;
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    images.push(dataUrl.split(',')[1]);
+    // Auto-reduce quality if image exceeds Anthropic's 5MB limit
+    let quality = 0.85;
+    let base64Data;
+    do {
+      base64Data = canvas.toDataURL('image/jpeg', quality).split(',')[1];
+      quality -= 0.15;
+    } while (base64Data.length * 0.75 > 4800000 && quality > 0.2);
+    images.push(base64Data);
   }
   return images;
 }
