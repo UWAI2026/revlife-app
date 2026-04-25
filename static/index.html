@@ -457,7 +457,7 @@ input,select,textarea,button{font-family:inherit}
           <div class="op-preview" id="op-preview-box"></div>
           <div class="btn-row">
             <button class="btn btn-gold" onclick="downloadPDF()">Download PDF</button>
-            <button class="btn btn-primary" onclick="saveCase()">Save to Pipeline</button>
+            <button class="btn btn-primary" id="save-case-btn" onclick="saveCase()">Save to Pipeline</button>
             <button class="btn" onclick="goStep(3)">Back</button>
           </div>
         </div>
@@ -583,6 +583,8 @@ let selectedCarrier = 'AZ';
 let carrierManuallySelected = false;
 let curDis = [], curAdv = [];
 let manualDis = [], manualAdv = [];
+let removedAiDis = new Set(), removedAiAdv = new Set();
+let editingCaseId = null;
 let uploadedFiles = [];
 let modalCaseId = null;
 
@@ -917,6 +919,9 @@ function populateExtractedFields(d) {
   document.getElementById('r-outloan').value = '';
   manualDis = [];
   manualAdv = [];
+  removedAiDis = new Set();
+  removedAiAdv = new Set();
+  editingCaseId = null;
   const opt2note = document.getElementById('opt2-note');
   if (opt2note) opt2note.textContent = '';
   set('r-carrier', d.carrier);
@@ -941,7 +946,7 @@ function populateExtractedFields(d) {
 function goStep(n) {
   [1, 2, 3, 4].forEach(i => document.getElementById('s' + i).style.display = i === n ? '' : 'none');
   if (n === 2) updateFlags();
-  if (n === 1) { carrierManuallySelected = false; }
+  if (n === 1) { carrierManuallySelected = false; removedAiDis = new Set(); removedAiAdv = new Set(); editingCaseId = null; document.getElementById('save-case-btn').textContent = 'Save to Pipeline'; }
   if (n === 3) { syncOpt2(); syncOpt3(); renderCarrierRec(); recalcOptions(); buildAdvDis(); }
   if (n === 4) buildOnePager();
 }
@@ -1143,7 +1148,7 @@ function updateFlags() {
   if (!flags.some(f => f.b))
     flags.push({ b: 0, t: 'No major disadvantages flagged', s: 'Review fields above and adjust if needed' });
 
-  curDis = flags.filter(f => f.b).map(f => f.t);
+  curDis = flags.filter(f => f.b).map(f => f.t).filter(t => !removedAiDis.has(t));
   document.getElementById('flag-list').innerHTML = flags.map(f => `
     <div class="flag-item ${f.b ? 'bad' : 'good'}">
       <div class="flag-dot ${f.b ? 'r' : 'g'}">${f.b ? '✕' : '✓'}</div>
@@ -1183,14 +1188,16 @@ function buildAdvDis() {
     if (dl.includes('cap rate')) adv.push(m.caps);
     if (dl.includes('market risk')) adv.push(m.mkt);
   });
-  curAdv = [...new Set(adv)];
+  curAdv = [...new Set(adv)].filter(a => !removedAiAdv.has(a));
+  const aiDisBtns = (d, i) => `<div class="adv-item d" style="display:flex;justify-content:space-between;align-items:center"><span>${d}</span><span style="display:flex;gap:5px;flex-shrink:0;margin-left:8px"><span onclick="editAiDis(${i})" title="Edit" style="cursor:pointer;color:#aaa;font-size:11px;border:1px solid #ddd;border-radius:3px;padding:0 4px;line-height:1.6">✎</span><span onclick="removeAiDis(${i})" title="Remove" style="cursor:pointer;color:#aaa;font-size:14px">×</span></span></div>`;
+  const aiAdvBtns = (a, i) => `<div class="adv-item a" style="display:flex;justify-content:space-between;align-items:center"><span>${a}</span><span style="display:flex;gap:5px;flex-shrink:0;margin-left:8px"><span onclick="editAiAdv(${i})" title="Edit" style="cursor:pointer;color:#aaa;font-size:11px;border:1px solid #cde;border-radius:3px;padding:0 4px;line-height:1.6">✎</span><span onclick="removeAiAdv(${i})" title="Remove" style="cursor:pointer;color:#aaa;font-size:14px">×</span></span></div>`;
   document.getElementById('dis-list').innerHTML =
-    curDis.map(d => `<div class="adv-item d">${d}</div>`).join('') +
-    manualDis.map((d, i) => `<div class="adv-item d" style="display:flex;justify-content:space-between;align-items:center">${d}<span onclick="removeManualDis(${i})" style="cursor:pointer;margin-left:8px;color:#999;font-size:14px">×</span></div>`).join('') ||
+    curDis.map(aiDisBtns).join('') +
+    manualDis.map((d, i) => `<div class="adv-item d" style="display:flex;justify-content:space-between;align-items:center"><span>${d}</span><span onclick="removeManualDis(${i})" style="cursor:pointer;margin-left:8px;color:#999;font-size:14px;flex-shrink:0">×</span></div>`).join('') ||
     '<div style="font-size:12px;color:#888">None flagged</div>';
   document.getElementById('adv-list').innerHTML =
-    curAdv.map(a => `<div class="adv-item a">${a}</div>`).join('') +
-    manualAdv.map((a, i) => `<div class="adv-item a" style="display:flex;justify-content:space-between;align-items:center">${a}<span onclick="removeManualAdv(${i})" style="cursor:pointer;margin-left:8px;color:#999;font-size:14px">×</span></div>`).join('');
+    curAdv.map(aiAdvBtns).join('') +
+    manualAdv.map((a, i) => `<div class="adv-item a" style="display:flex;justify-content:space-between;align-items:center"><span>${a}</span><span onclick="removeManualAdv(${i})" style="cursor:pointer;margin-left:8px;color:#999;font-size:14px;flex-shrink:0">×</span></div>`).join('');
 }
 
 function addManualDis() {
@@ -1213,6 +1220,20 @@ function addManualAdv() {
 
 function removeManualDis(i) { manualDis.splice(i, 1); buildAdvDis(); }
 function removeManualAdv(i) { manualAdv.splice(i, 1); buildAdvDis(); }
+function removeAiDis(i) { removedAiDis.add(curDis[i]); updateFlags(); buildAdvDis(); }
+function removeAiAdv(i) { removedAiAdv.add(curAdv[i]); buildAdvDis(); }
+function editAiDis(i) {
+  const old = curDis[i];
+  const val = prompt('Edit disadvantage:', old);
+  if (!val || !val.trim()) return;
+  removedAiDis.add(old); manualDis.push(val.trim()); updateFlags(); buildAdvDis();
+}
+function editAiAdv(i) {
+  const old = curAdv[i];
+  const val = prompt('Edit advantage:', old);
+  if (!val || !val.trim()) return;
+  removedAiAdv.add(old); manualAdv.push(val.trim()); buildAdvDis();
+}
 
 // ─── ONE-PAGER ───
 function buildOnePager() {
@@ -1276,6 +1297,34 @@ function redownloadPDFFromCase(id) {
     age: c.age, carrier: c.carrier, p2: c.opt2Premium, p3: c.opt3Premium,
     dis: c.dis, adv: c.adv
   });
+}
+
+function editCase(id) {
+  const c = casesCache.find(x => x.id === id);
+  if (!c) { showToast('Case not found — please refresh and try again'); return; }
+  // Reset state
+  curDis = []; curAdv = [];
+  manualDis = [...(c.dis || [])];
+  manualAdv = [...(c.adv || [])];
+  removedAiDis = new Set();
+  removedAiAdv = new Set();
+  editingCaseId = id;
+  // Populate form fields
+  document.getElementById('f-client').value = c.client || '';
+  document.getElementById('f-agent').value = c.agent || '';
+  document.getElementById('f-age').value = c.age || '';
+  document.getElementById('r-csv').value = c.csv || '';
+  document.getElementById('r-db').value = c.dbAmount || '';
+  document.getElementById('r-prem').value = c.annualPremium || '';
+  document.getElementById('opt2').value = c.opt2Premium || '';
+  document.getElementById('opt3').value = c.opt3Premium || '';
+  selectedCarrier = c.carrier || 'AZ';
+  carrierManuallySelected = true;
+  // Navigate
+  showPage('analysis', document.getElementById('nav-analysis'));
+  goStep(2);
+  document.getElementById('save-case-btn').textContent = 'Update Case';
+  showToast(`Editing case for ${c.client} — make changes and click Update Case`);
 }
 
 function downloadPDF(override) {
@@ -1517,7 +1566,7 @@ async function saveCase() {
   const agent = document.getElementById('f-agent').value || currentUser;
   const csv = document.getElementById('r-csv').value || '0';
   const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const res = await apiPost('/api/cases', {
+  const payload = {
     client, agent,
     date: now,
     carrier: selectedCarrier,
@@ -1530,12 +1579,15 @@ async function saveCase() {
     dis: [...curDis, ...manualDis],
     adv: [...curAdv, ...manualAdv],
     opt1: document.getElementById('opt-preview')?.innerText || ''
-  });
-  if (res.error || !res.id) {
+  };
+  const res = editingCaseId
+    ? await apiPut(`/api/cases/${editingCaseId}`, payload)
+    : await apiPost('/api/cases', payload);
+  if (!editingCaseId && (res.error || !res.id)) {
     showToast('Error saving case — please log out and log back in, then try again');
     return;
   }
-  showToast(`Case saved for ${client} — view in Cases or Pipeline`);
+  showToast(editingCaseId ? `Case updated for ${client}` : `Case saved for ${client} — view in Cases or Pipeline`);
   goStep(1);
   updateSlots();
   document.getElementById('f-client').value = '';
@@ -1562,7 +1614,8 @@ async function buildCasesTable() {
       <td>${c.result ? `<span class="stage-pill ${c.result==='In Force'?'stage-4':c.result==='Cancelled'?'stage-7':'stage-6'}">${c.result}</span>` : '—'}</td>
       <td style="max-width:140px;font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.caseNotes||'—'}</td>
       <td>
-        <button class="btn btn-sm" onclick="openModal(${c.id})">Update</button>
+        <button class="btn btn-sm" onclick="openModal(${c.id})">Stage</button>
+        <button class="btn btn-sm btn-primary" onclick="editCase(${c.id})" style="margin-left:4px">Edit</button>
         <button class="btn btn-sm btn-gold" onclick="redownloadPDFFromCase(${c.id})" style="margin-left:4px">PDF</button>
         <button class="btn btn-sm" onclick="deleteCase(${c.id})" style="margin-left:4px;color:#c0392b;border-color:#e8b4b0">Delete</button>
       </td>
