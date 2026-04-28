@@ -466,8 +466,17 @@ input,select,textarea,button{font-family:inherit}
 
     <!-- CASES PAGE -->
     <div class="page" id="page-cases">
-      <div class="page-title">Saved Cases</div>
-      <div class="page-sub">All completed analyses — click any case to view or download</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <div class="page-title">Saved Cases</div>
+          <div class="page-sub" style="margin-bottom:0">All completed analyses — click any case to view or download</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;color:#999">Sort:</span>
+          <button id="sort-recent-btn" class="btn btn-primary btn-sm" onclick="setCasesSort('recent')" style="font-size:11px;padding:4px 10px">Most Recent</button>
+          <button id="sort-advisor-btn" class="btn btn-sm" onclick="setCasesSort('advisor')" style="font-size:11px;padding:4px 10px">By Advisor</button>
+        </div>
+      </div>
       <div class="card">
         <table class="cases-table">
           <thead><tr><th>Client</th><th>Agent</th><th>Date</th><th>Carrier</th><th>CSV</th><th>Lead Source</th><th>Stage</th><th>Result</th><th>Notes</th><th>Actions</th></tr></thead>
@@ -585,6 +594,7 @@ let curDis = [], curAdv = [];
 let manualDis = [], manualAdv = [];
 let removedAiDis = new Set(), removedAiAdv = new Set();
 let editingCaseId = null;
+let casesSortBy = 'recent';
 let uploadedFiles = [];
 let modalCaseId = null;
 
@@ -1596,13 +1606,34 @@ async function saveCase() {
 }
 
 // ─── CASES TABLE ───
+function setCasesSort(by) {
+  casesSortBy = by;
+  document.getElementById('sort-recent-btn').className = 'btn btn-sm' + (by === 'recent' ? ' btn-primary' : '');
+  document.getElementById('sort-advisor-btn').className = 'btn btn-sm' + (by === 'advisor' ? ' btn-primary' : '');
+  buildCasesTable();
+}
+
 async function buildCasesTable() {
   const cases = await fetchCases();
   const tbody = document.getElementById('cases-tbody');
   const empty = document.getElementById('cases-empty');
   if (!cases.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
-  tbody.innerHTML = cases.map(c => `
+  // Sort
+  const sorted = [...cases].sort((a, b) => {
+    if (casesSortBy === 'advisor') {
+      const cmp = (a.agent || '').localeCompare(b.agent || '');
+      if (cmp !== 0) return cmp;
+      // Within same advisor, most recent first
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    }
+    // Default: most recent first
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+  // Update sort button styles
+  document.getElementById('sort-recent-btn').className = 'btn btn-sm' + (casesSortBy === 'recent' ? ' btn-primary' : '');
+  document.getElementById('sort-advisor-btn').className = 'btn btn-sm' + (casesSortBy === 'advisor' ? ' btn-primary' : '');
+  tbody.innerHTML = sorted.map(c => `
     <tr>
       <td style="font-weight:600">${c.client}</td>
       <td>${c.agent}</td>
