@@ -332,6 +332,10 @@ input,select,textarea,button{font-family:inherit}
             <button class="btn btn-primary" onclick="runAIAnalysis()">Analyze with AI</button>
             <button class="btn" onclick="goStep(2)">Enter manually</button>
           </div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0">
+            <div style="font-size:11px;color:#999;margin-bottom:6px">Policy cannot be replaced? Still give the agent credit:</div>
+            <button class="btn" style="width:100%;background:#f5f0e8;border-color:#d4b97a;color:#7a5c1a;font-size:12px" onclick="saveNotReplaceable()">Not Replaceable — Add to Leaderboard</button>
+          </div>
         </div>
       </div>
 
@@ -1605,6 +1609,28 @@ async function saveCase() {
   document.getElementById('f-age').value = '';
 }
 
+// ─── NOT REPLACEABLE ───
+async function saveNotReplaceable() {
+  const agent = document.getElementById('f-agent').value.trim();
+  const client = document.getElementById('f-client').value.trim();
+  if (!agent) { showToast('Please enter the agent name before saving'); return; }
+  const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const res = await apiPost('/api/cases', {
+    client: client || 'Not provided',
+    agent,
+    date: now,
+    carrier: '',
+    csv: 0,
+    stage: 0
+  });
+  if (res.error || !res.id) { showToast('Error saving — please try again'); return; }
+  showToast(`Leaderboard credit saved for ${agent}`);
+  document.getElementById('f-client').value = '';
+  document.getElementById('f-agent').value = '';
+  document.getElementById('f-age').value = '';
+  updateSlots();
+}
+
 // ─── CASES TABLE ───
 function setCasesSort(by) {
   casesSortBy = by;
@@ -1614,7 +1640,7 @@ function setCasesSort(by) {
 }
 
 async function buildCasesTable() {
-  const cases = await fetchCases();
+  const cases = (await fetchCases()).filter(c => c.stage !== 0); // exclude leaderboard-only credits
   const tbody = document.getElementById('cases-tbody');
   const empty = document.getElementById('cases-empty');
   if (!cases.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
@@ -1656,7 +1682,7 @@ async function buildCasesTable() {
 
 // ─── PIPELINE ───
 async function buildPipeline() {
-  const cases = await fetchCases();
+  const cases = (await fetchCases()).filter(c => c.stage !== 0); // exclude leaderboard-only credits
   const active = cases.filter(c => c.stage < 5).length;
   const submitted = cases.filter(c => c.stage === 5).length;
   const notSubmitted = cases.filter(c => c.stage === 6).length;
