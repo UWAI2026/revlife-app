@@ -269,6 +269,18 @@ def delete_case(case_id):
     return jsonify({'ok': True})
 
 
+@app.route('/api/debug/agents')
+def debug_agents():
+    if request.args.get('key') != 'revlife2026debug':
+        return jsonify({'error': 'forbidden'}), 403
+    from collections import Counter
+    cases = Case.query.all()
+    agents = Counter()
+    for c in cases:
+        if c.agent:
+            agents[c.agent.strip()] += 1
+    return jsonify(sorted([{'agent': k, 'count': v} for k, v in agents.items()], key=lambda x: x['agent']))
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
