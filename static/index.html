@@ -376,6 +376,13 @@ input,select,textarea,button{font-family:inherit}
                 <option value="no">No — not on policy</option><option value="yes">Yes — rider present</option>
               </select>
             </div>
+            <div class="fg-full"><label class="fl">Death benefit option</label>
+              <select class="fi" id="r-dboption" onchange="updateFlags()">
+                <option value="level">Level (Option A / Option 1)</option>
+                <option value="increasing">Increasing (Return of Premium / Option B / Option 2)</option>
+                <option value="unknown">Unknown / not specified</option>
+              </select>
+            </div>
           </div>
         </div>
         <div class="card">
@@ -428,16 +435,42 @@ input,select,textarea,button{font-family:inherit}
           <div class="card">
             <div class="card-title">Disadvantages</div>
             <div class="adv-list" id="dis-list"></div>
-            <div style="display:flex;gap:6px;margin-top:8px">
-              <input id="manual-dis-input" type="text" placeholder="Add disadvantage…" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px">
+            <select style="width:100%;margin-top:8px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;color:#666" onchange="quickAddDis(this)">
+              <option value="">— Quick add from list —</option>
+              <option value="Increasing death benefit — will cause the cost of insurance to increase each year, potentially putting the policy at risk of lapse">Increasing death benefit (COI risk)</option>
+              <option value="Policy is under-funded: high death benefit relative to premiums creates increasing cost of insurance">Policy under-funded (high DB / low premium)</option>
+              <option value="Negative rate of return: total premiums paid exceed current cash value">Negative rate of return</option>
+              <option value="Policy is at risk of lapsing before life expectancy">At risk of lapse</option>
+              <option value="Outstanding policy loan reduces the net death benefit and cash value">Outstanding policy loan</option>
+              <option value="Low S&P 500 cap rate limits growth potential">Low cap rate</option>
+              <option value="Market risk: cash value can decrease if sub-account investments underperform">Market risk (Variable policy)</option>
+              <option value="Surrender charges apply if the policy is surrendered in the near term">Surrender charges apply</option>
+              <option value="High cost of insurance eroding cash value each year">High COI eroding cash value</option>
+            </select>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <input id="manual-dis-input" type="text" placeholder="Or type a custom disadvantage…" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px">
               <button class="btn" style="padding:6px 12px;font-size:12px" onclick="addManualDis()">Add</button>
             </div>
           </div>
           <div class="card">
             <div class="card-title">Advantages (auto-matched)</div>
             <div class="adv-list" id="adv-list"></div>
-            <div style="display:flex;gap:6px;margin-top:8px">
-              <input id="manual-adv-input" type="text" placeholder="Add advantage…" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px">
+            <select style="width:100%;margin-top:8px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;color:#666" onchange="quickAddAdv(this)">
+              <option value="">— Quick add from list —</option>
+              <option value="Level death benefit — causes the cost of insurance to decrease over time as the cash value grows">Level death benefit (decreasing COI)</option>
+              <option value="Bigger death benefit with no additional premiums">Bigger DB with no additional premiums</option>
+              <option value="Bigger death benefit with the same annual premium">Bigger DB with same annual premium</option>
+              <option value="Policy lasts and grows throughout lifetime, instead of lapsing">Guaranteed not to lapse</option>
+              <option value="Access to death benefit for living benefits / chronic illness needs">Living benefits / chronic illness access</option>
+              <option value="Policy is max-funded to minimize fees and maximize growth">Max-funded — lower fees, higher growth</option>
+              <option value="Potential for higher rate of return: 4–7% net of costs over time">Higher rate of return (4–7% net)</option>
+              <option value="Lower policy loan rate compared to current policy">Lower loan rate</option>
+              <option value="Higher S&P 500 cap rate — greater growth potential">Higher cap rate</option>
+              <option value="Eliminate market risk while maintaining market-like upside">Eliminate market risk</option>
+              <option value="No surrender charges — immediate access to full cash value">No surrender charges</option>
+            </select>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <input id="manual-adv-input" type="text" placeholder="Or type a custom advantage…" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px">
               <button class="btn" style="padding:6px 12px;font-size:12px" onclick="addManualAdv()">Add</button>
             </div>
           </div>
@@ -833,6 +866,8 @@ lapseInfo: (string) Any lapse projection — look for: Lapse Age, Policy Lapses 
 
 hasCI: (string) Return "yes" if the document lists any of: Chronic Illness Rider, Accelerated Death Benefit (ABR), LTC Rider, Long-Term Care Rider, Terminal Illness Rider, Critical Illness Rider, Care Coverage Accelerated Benefits Rider (CCABR), LifeAssure Accelerated Benefits Rider, or any rider that accelerates the death benefit for chronic illness or long-term care. Otherwise return "no".
 
+dbOption: (string) The death benefit option type. Look for: "Death Benefit Option", "DB Option", "Option A/B", "Option 1/2", "Return of Premium". Return "increasing" if the policy has an increasing death benefit (Return of Premium, Option B, Option 2, Increasing DB). Return "level" if it has a level death benefit (Option A, Option 1, Level DB). Return "unknown" if not specified or unclear.
+
 notes: (string) Any other relevant observations, warnings, or unusual features of the policy.
 
 CRITICAL RULES:
@@ -951,6 +986,7 @@ function populateExtractedFields(d) {
   set('r-cap', d.capRate);
   set('r-lapse', d.lapseInfo);
   if (d.hasCI) document.getElementById('r-ci').value = d.hasCI;
+  if (d.dbOption) { const sel = document.getElementById('r-dboption'); if (sel && ['level','increasing','unknown'].includes(d.dbOption)) sel.value = d.dbOption; }
   updateFlags();
   syncOpt2();
   syncOpt3();
@@ -1128,6 +1164,7 @@ function updateFlags() {
   const lapse = (document.getElementById('r-lapse')?.value || '').toLowerCase().trim();
   const ci = document.getElementById('r-ci')?.value || 'no';
   const type = document.getElementById('r-type')?.value || 'Whole Life';
+  const dbOption = document.getElementById('r-dboption')?.value || 'level';
   const loanNum = parseFloat(loan), capNum = parseFloat(cap);
   const ror = tp && yr ? (Math.pow(cvForRor / tp, 1 / yr) - 1) * 100 : null;
   const age = parseInt(document.getElementById('f-age')?.value) || 0;
@@ -1159,6 +1196,8 @@ function updateFlags() {
     flags.push({ b: 1, t: `Low cap rate: S&P 500 cap is ${capNum}%`, s: 'Below 10% threshold' });
   if (type === 'Variable Life')
     flags.push({ b: 1, t: 'Market risk: CV can lose money if the market goes down', s: 'Variable policy — no floor protection' });
+  if (dbOption === 'increasing')
+    flags.push({ b: 1, t: 'Increasing death benefit — will cause the cost of insurance to increase each year, potentially putting the policy at risk of lapse', s: 'Return of Premium / Option B increases COI over time' });
   if (!flags.some(f => f.b))
     flags.push({ b: 0, t: 'No major disadvantages flagged', s: 'Review fields above and adjust if needed' });
 
@@ -1201,6 +1240,7 @@ function buildAdvDis() {
     if (dl.includes('loan rate')) adv.push(m.loan);
     if (dl.includes('cap rate')) adv.push(m.caps);
     if (dl.includes('market risk')) adv.push(m.mkt);
+    if (dl.includes('increasing death benefit')) adv.push('Level death benefit — causes the cost of insurance to decrease over time as the cash value grows.');
   });
   curAdv = [...new Set(adv)].filter(a => !removedAiAdv.has(a));
   const aiDisBtns = (d, i) => `<div class="adv-item d" style="display:flex;justify-content:space-between;align-items:center"><span>${d}</span><span style="display:flex;gap:5px;flex-shrink:0;margin-left:8px"><span onclick="editAiDis(${i})" title="Edit" style="cursor:pointer;color:#aaa;font-size:11px;border:1px solid #ddd;border-radius:3px;padding:0 4px;line-height:1.6">✎</span><span onclick="removeAiDis(${i})" title="Remove" style="cursor:pointer;color:#aaa;font-size:14px">×</span></span></div>`;
@@ -1234,6 +1274,8 @@ function addManualAdv() {
 
 function removeManualDis(i) { manualDis.splice(i, 1); buildAdvDis(); }
 function removeManualAdv(i) { manualAdv.splice(i, 1); buildAdvDis(); }
+function quickAddDis(sel) { if (!sel.value) return; manualDis.push(sel.value); sel.value = ''; buildAdvDis(); }
+function quickAddAdv(sel) { if (!sel.value) return; manualAdv.push(sel.value); sel.value = ''; buildAdvDis(); }
 function removeAiDis(i) { removedAiDis.add(curDis[i]); updateFlags(); buildAdvDis(); }
 function removeAiAdv(i) { removedAiAdv.add(curAdv[i]); buildAdvDis(); }
 function editAiDis(i) {
