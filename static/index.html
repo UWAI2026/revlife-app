@@ -146,9 +146,9 @@ input,select,textarea,button{font-family:inherit}
 .stat-value{font-size:22px;font-weight:700;color:#1a2c4e}
 
 /* PIPELINE */
-.pipeline-wrap{overflow-x:auto}
-.pipeline-stages{display:flex;gap:0;min-width:700px}
-.stage-col{flex:1;min-width:0}
+.pipeline-wrap{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;cursor:grab}
+.pipeline-stages{display:flex;gap:0;min-width:1100px}
+.stage-col{flex:0 0 180px;min-width:180px}
 .stage-header{padding:8px;font-size:10px;font-weight:700;color:#888;border-bottom:2px solid #eee;text-align:center;line-height:1.3;text-transform:uppercase;letter-spacing:.04em}
 .stage-header.active{border-bottom-color:#c9a84c;color:#8a6d20}
 .stage-cards{padding:7px 5px;display:flex;flex-direction:column;gap:5px;min-height:60px}
@@ -230,13 +230,15 @@ input,select,textarea,button{font-family:inherit}
 .cases-table td{padding:8px 10px;font-size:12px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
 .cases-table tr:hover td{background:#fafafa}
 .stage-pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
-.stage-1{background:#fff3e0;color:#e65100}
+.stage-1{background:#fff8e1;color:#f57f17}
 .stage-2{background:#e3f2fd;color:#1565c0}
-.stage-3{background:#f3e5f5;color:#6a1b9a}
-.stage-4{background:#e8f5e9;color:#2e7d32}
-.stage-5{background:#e0f2f1;color:#00695c}
-.stage-6{background:#fce4ec;color:#880e4f}
-.stage-7{background:#ede7f6;color:#4527a0}
+.stage-3{background:#e8f5e9;color:#2e7d32}
+.stage-4{background:#f3e5f5;color:#6a1b9a}
+.stage-5{background:#fff3e0;color:#e65100}
+.stage-6{background:#e0f7fa;color:#006064}
+.stage-7{background:#fce4ec;color:#880e4f}
+.stage-8{background:#fbe9e7;color:#bf360c}
+.stage-9{background:#fff9c4;color:#f57f17}
 
 @media(max-width:600px){
   .two-col,.fg,.stat-row{grid-template-columns:1fr}
@@ -349,9 +351,13 @@ input,select,textarea,button{font-family:inherit}
         </div>
         <div class="card">
           <div class="card-title">Extracted Policy Data <span style="font-size:9px;color:#aaa;font-weight:400;text-transform:none;letter-spacing:0">(combined if multiple policies)</span></div>
-          <div style="font-size:11px;color:#1d9e75;display:flex;align-items:center;gap:5px;margin-bottom:12px">
+          <div style="font-size:11px;color:#1d9e75;display:flex;align-items:center;gap:5px;margin-bottom:8px">
             <div style="width:6px;height:6px;border-radius:50%;background:#1d9e75;flex-shrink:0"></div>
             AI extracted — verify and correct before proceeding
+          </div>
+          <div id="mec-badge" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:9px 13px;margin-bottom:12px;font-size:12px;color:#856404;align-items:center;gap:7px">
+            <span style="font-size:15px">⚠️</span>
+            <span><strong>MEC Detected</strong> — This policy is a Modified Endowment Contract. Options will use the Surrender + PDF format instead of a 1035 exchange.</span>
           </div>
           <div class="fg">
             <div><label class="fl">Policy type</label>
@@ -381,6 +387,13 @@ input,select,textarea,button{font-family:inherit}
                 <option value="level">Level (Option A / Option 1)</option>
                 <option value="increasing">Increasing (Return of Premium / Option B / Option 2)</option>
                 <option value="unknown">Unknown / not specified</option>
+              </select>
+            </div>
+            <div class="fg-full"><label class="fl">Policy is a MEC (Modified Endowment Contract)?</label>
+              <select class="fi" id="r-mec" onchange="updateMECBadge();updateFlags()">
+                <option value="unknown">Unknown / not specified</option>
+                <option value="no">No — not a MEC</option>
+                <option value="yes">Yes — this is a MEC</option>
               </select>
             </div>
           </div>
@@ -525,16 +538,31 @@ input,select,textarea,button{font-family:inherit}
 
     <!-- PIPELINE PAGE -->
     <div class="page" id="page-pipeline">
-      <div class="page-title">1035 Pipeline</div>
-      <div class="page-sub">Track every case from analysis to application</div>
+      <div class="page-title">Pending Pipeline</div>
+      <div class="page-sub">Track every case from app received to in force</div>
       <div class="stat-row">
         <div class="stat-card"><div class="stat-label">Active cases</div><div class="stat-value" id="pipe-active">0</div></div>
-        <div class="stat-card"><div class="stat-label">Apps submitted (all time)</div><div class="stat-value" id="pipe-submitted">0</div></div>
-        <div class="stat-card"><div class="stat-label">Conversion rate</div><div class="stat-value" id="pipe-rate">—</div></div>
+        <div class="stat-card"><div class="stat-label">In Force (YTD)</div><div class="stat-value" id="pipe-submitted">0</div></div>
+        <div class="stat-card"><div class="stat-label">Placement rate</div><div class="stat-value" id="pipe-rate">—</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <label style="font-size:12px;color:#555;font-weight:600">Case Manager:</label>
+        <select id="cm-filter" onchange="buildPipeline()" style="padding:6px 10px;font-size:12px;border:1.5px solid #ddd;border-radius:8px;outline:none;background:white">
+          <option value="">All</option>
+          <option value="Tina">Tina</option>
+          <option value="Brittany">Brittany</option>
+          <option value="Lexie">Lexie</option>
+          <option value="Karlee">Karlee</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="openNewCaseModal()" style="margin-left:auto">+ New Case</button>
       </div>
       <div class="card" style="padding:14px 10px">
-        <div class="pipeline-wrap">
+        <div class="pipeline-wrap" id="pipeline-scroll-wrap">
           <div class="pipeline-stages" id="pipeline-board"></div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:8px;margin-top:10px">
+          <button class="btn btn-sm" onclick="document.getElementById('pipeline-scroll-wrap').scrollLeft-=250">← Scroll</button>
+          <button class="btn btn-sm" onclick="document.getElementById('pipeline-scroll-wrap').scrollLeft+=250">Scroll →</button>
         </div>
       </div>
     </div>
@@ -558,6 +586,90 @@ input,select,textarea,button{font-family:inherit}
   </div>
 </div>
 
+<!-- NEW CASE MODAL -->
+<div class="modal-overlay" id="new-case-modal">
+  <div class="modal" style="max-width:540px;max-height:90vh;overflow-y:auto">
+    <div class="modal-close" onclick="document.getElementById('new-case-modal').classList.remove('on')">×</div>
+    <div class="modal-title">New Case</div>
+    <div class="modal-sub">Add a new pending case to the pipeline</div>
+    <div class="fg">
+      <div>
+        <label class="fl">Insured Name *</label>
+        <input class="fi" id="nc-insured" placeholder="Client full name"/>
+      </div>
+      <div>
+        <label class="fl">Agent *</label>
+        <input class="fi" id="nc-agent" placeholder="Agent name"/>
+      </div>
+      <div>
+        <label class="fl">Carrier</label>
+        <input class="fi" id="nc-carrier" placeholder="e.g. Allianz, Columbus Life"/>
+      </div>
+      <div>
+        <label class="fl">Policy Number</label>
+        <input class="fi" id="nc-policy" placeholder="Policy #"/>
+      </div>
+      <div>
+        <label class="fl">Target Premium</label>
+        <input class="fi" id="nc-target" type="number" placeholder="0"/>
+      </div>
+      <div>
+        <label class="fl">Funding Source</label>
+        <input class="fi" id="nc-funding" placeholder="e.g. 1035, New Money"/>
+      </div>
+      <div>
+        <label class="fl">Received Date</label>
+        <input class="fi" id="nc-date" type="date"/>
+      </div>
+      <div>
+        <label class="fl">Stage</label>
+        <select class="fi" id="nc-stage">
+          <option value="1">App Received</option>
+          <option value="2">Pending Approval</option>
+          <option value="3">Approved</option>
+          <option value="4">Funding Confirmation Pending</option>
+          <option value="5">Out for Delivery</option>
+          <option value="6">In Force</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl">Case Manager</label>
+        <select class="fi" id="nc-cm">
+          <option value="">— Select —</option>
+          <option value="Tina">Tina</option>
+          <option value="Brittany">Brittany</option>
+          <option value="Lexie">Lexie</option>
+          <option value="Karlee">Karlee</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl">Rev Life Coach</label>
+        <select class="fi" id="nc-coach">
+          <option value="">— Select —</option>
+          <option value="Brett">Brett</option>
+          <option value="Chad">Chad</option>
+          <option value="Cassidy">Cassidy</option>
+        </select>
+      </div>
+      <div>
+        <label class="fl">Annuity Marketer</label>
+        <select class="fi" id="nc-marketer">
+          <option value="">— Select —</option>
+          <option value="Coop">Coop</option>
+          <option value="Jake">Jake</option>
+          <option value="Eric">Eric</option>
+          <option value="Nate">Nate</option>
+          <option value="Kevin">Kevin</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveNewCase()">Add Case</button>
+      <button class="btn" onclick="document.getElementById('new-case-modal').classList.remove('on')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- PIPELINE STAGE MODAL -->
 <div class="modal-overlay" id="stage-modal">
   <div class="modal">
@@ -566,12 +678,15 @@ input,select,textarea,button{font-family:inherit}
     <div class="modal-sub" id="modal-case-info"></div>
     <label class="fl">Move to stage:</label>
     <select class="stage-select" id="modal-stage-select">
-      <option value="1">1. Analysis Provided</option>
-      <option value="2">2. Appt Scheduled</option>
-      <option value="3">3. 1035 Presented</option>
-      <option value="4">4. 2nd Meeting Needed</option>
-      <option value="5">5. App Submitted</option>
-      <option value="6">6. Not Submitted</option>
+      <option value="1">App Received</option>
+      <option value="2">Pending Approval</option>
+      <option value="3">Approved</option>
+      <option value="4">Funding Confirmation Pending</option>
+      <option value="5">Out for Delivery</option>
+      <option value="6">In Force</option>
+      <option value="7">Declined</option>
+      <option value="8">Withdrawn</option>
+      <option value="9">Postponed</option>
     </select>
     <div id="modal-reason-wrap" style="display:none">
       <label class="fl">Reason not submitted:</label>
@@ -598,6 +713,14 @@ input,select,textarea,button{font-family:inherit}
     <textarea class="modal-note-area" id="modal-case-notes" placeholder="Any additional notes on this case..."></textarea>
     <label class="fl">Internal notes (FMO only):</label>
     <textarea class="modal-note-area" id="modal-notes" placeholder="Internal FMO notes..."></textarea>
+    <label class="fl">Case Manager:</label>
+    <select class="stage-select" id="modal-cm">
+      <option value="">— Select —</option>
+      <option value="Tina">Tina</option>
+      <option value="Brittany">Brittany</option>
+      <option value="Lexie">Lexie</option>
+      <option value="Karlee">Karlee</option>
+    </select>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="saveStageChange()">Save</button>
       <button class="btn" onclick="closeModal()">Cancel</button>
@@ -617,8 +740,10 @@ const AZ_MIN = [[0,45,25000],[46,59,50000],[60,69,75000],[70,72,100000],[73,90,1
 const CL_MIN = [[0,45,10000],[46,59,12000],[60,69,15000],[70,79,25000]];
 const AZ_MIN_DB = 100000;
 const CL_MIN_DB = 25000;
-const STAGE_NAMES = ['','Analysis Provided','Appt Scheduled','1035 Presented','2nd Meeting Needed','App Submitted','Not Submitted'];
-const STAGE_CLASSES = ['','stage-2','stage-3','stage-4','stage-5','stage-6','stage-7'];
+const STAGE_NAMES = ['','App Received','Pending Approval','Approved','Funding Confirmation Pending','Out for Delivery','In Force'];
+const STAGE_CLASSES = ['','stage-1','stage-2','stage-3','stage-4','stage-5','stage-6'];
+// Stage timeout in hours: [-, 24h, 1440h(60d), 24h, 72h(3d), 240h(10d), null]
+const STAGE_TIMEOUTS_HRS = [null, 24, 1440, 24, 72, 240, null];
 
 const LB_BASE = [["Shea, Kevin","",24],["Messina, Nick","",16],["Barnett, Kurtis","",15],["Heath, Slade","Caleb Heath",14],["Mundt, Justin","",18],["Singer, Peter","",11],["Campbell, Rocky","",10],["Grady, Brendan","Sean Flynn",9],["Rigano, Nick","Mikayla Carrah",9],["Ingier, Henry","",8],["Jacobsohn, Mark","",8],["Larson, Arika","",7],["McCambell, Kim","Chantal Smith",7],["Orfin, Dan","",7],["Weiss, Marty","",7],["Loveland, Tom","Jake Perreira",6],["Mullis, Chris","",6],["Retallick, Don","",6],["Shyman, Steve","",6],["Westall, Eric","Zak Moore",6],["Brumfield, Lisa","",6],["Caiati, Dominick","",5],["Deutsch, Mary","Maxwell Croft",5],["Dietz, Jesse","Alison Walker",5],["Baldwin, Steve","",4],["Bergeson, Amy","",4],["Campbell, Daniel","Brett Anderson",4],["Caulkins, Heather","Malaya Brockway",4],["Walker, Matt","Lavely, Sal",4],["Blackwell, Lisa","Devonte Wilson",3],["Erb, Vince","Lisa Chandler",3],["Grafrath, Katie","",3],["Grimes, Dustin","",3],["Hall, Ryan","",3],["Pomarico, Tony","",3],["Allen, Kim","",2],["Baun, Jean","",2],["Gayanyan, Nvard","",2],["Gibbs, Bo","Ryan Baumann",2],["McNinch, Joel","",2],["Miller, Matt","",2],["Olson, John","",2],["Pieracini, Andrew","Kim Allen",2],["Rogers, Hayward","",2],["Summerlin, Stacy","Keith Summerlin",2],["Turney, Scott","Justin Turney",2],["Villella, Judy","",2],["Weinberg, Rhonda","",2],["Campbell, Susan","",1],["Davis, JC","",1],["Fraga, Justin","",1],["Goehl, Steve","",1],["Henderson, Pamala","",1],["Hoffman, Pat & Schwann, Sid","",1],["Holland, Steve","",1],["Jacobs, Breck","",1],["Kagan, Andrew","",1],["Lau, Phil","",1],["Liggett, Hombre","",1],["Linnehan, Ryan","",1],["Pang, Wendy","",1],["Rael, Chris","",1],["Reising, John","",1],["Sims, Ben","",1],["Spivy, Randy","",1],["Watson, Tom","",1],["Allen, TJ","",0],["Bajerski, Evan","",0],["Balasu, Mitch","",0],["Cervone, Anthony","",0],["DeMell, Jon","",0],["Katz, Steve","",0],["Logan, Shelly","",0],["Murray, Mick","",0],["Tise, Dean","",0],["Viguer, Shelby","",0]];
 
@@ -632,6 +757,8 @@ let manualDis = [], manualAdv = [];
 let removedAiDis = new Set(), removedAiAdv = new Set();
 let editingCaseId = null;
 let casesSortBy = 'recent';
+let extractedIsMEC = null;
+let opt1Carrier = 'AZ', opt2Carrier = 'AZ', opt3Carrier = 'AZ';
 let uploadedFiles = [];
 let modalCaseId = null;
 
@@ -766,7 +893,7 @@ function showPage(id, el) {
   if (pg) pg.classList.add('on');
   if (el) el.classList.add('on');
   if (id === 'leaderboard') buildLeaderboard(LB_BASE);
-  if (id === 'pipeline') buildPipeline();
+  if (id === 'pipeline') { buildPipeline(); setTimeout(initPipelineDragScroll, 200); }
   if (id === 'cases') buildCasesTable();
 }
 
@@ -867,6 +994,8 @@ lapseInfo: (string) Any lapse projection — look for: Lapse Age, Policy Lapses 
 hasCI: (string) Return "yes" if the document lists any of: Chronic Illness Rider, Accelerated Death Benefit (ABR), LTC Rider, Long-Term Care Rider, Terminal Illness Rider, Critical Illness Rider, Care Coverage Accelerated Benefits Rider (CCABR), LifeAssure Accelerated Benefits Rider, or any rider that accelerates the death benefit for chronic illness or long-term care. Otherwise return "no".
 
 dbOption: (string) The death benefit option type. Look for: "Death Benefit Option", "DB Option", "Option A/B", "Option 1/2", "Return of Premium". Return "increasing" if the policy has an increasing death benefit (Return of Premium, Option B, Option 2, Increasing DB). Return "level" if it has a level death benefit (Option A, Option 1, Level DB). Return "unknown" if not specified or unclear.
+
+isMEC: (boolean or null) Whether the policy is a Modified Endowment Contract. Look for the text "MEC", "Modified Endowment Contract", "7-Pay Test Failed", "7-Pay Limit Exceeded", "violates 7-pay test", or any explicit label indicating MEC status. Return true if the policy is identified as a MEC. Return false if the document explicitly states the policy is NOT a MEC. Return null if the document gives no information either way.
 
 notes: (string) Any other relevant observations, warnings, or unusual features of the policy.
 
@@ -987,6 +1116,10 @@ function populateExtractedFields(d) {
   set('r-lapse', d.lapseInfo);
   if (d.hasCI) document.getElementById('r-ci').value = d.hasCI;
   if (d.dbOption) { const sel = document.getElementById('r-dboption'); if (sel && ['level','increasing','unknown'].includes(d.dbOption)) sel.value = d.dbOption; }
+  extractedIsMEC = d.isMEC === true ? true : null;
+  const mecSel = document.getElementById('r-mec');
+  if (mecSel) mecSel.value = d.isMEC === true ? 'yes' : 'unknown';
+  updateMECBadge();
   updateFlags();
   syncOpt2();
   syncOpt3();
@@ -996,7 +1129,7 @@ function populateExtractedFields(d) {
 function goStep(n) {
   [1, 2, 3, 4].forEach(i => document.getElementById('s' + i).style.display = i === n ? '' : 'none');
   if (n === 2) updateFlags();
-  if (n === 1) { carrierManuallySelected = false; removedAiDis = new Set(); removedAiAdv = new Set(); editingCaseId = null; document.getElementById('save-case-btn').textContent = 'Save to Pipeline'; }
+  if (n === 1) { carrierManuallySelected = false; removedAiDis = new Set(); removedAiAdv = new Set(); editingCaseId = null; extractedIsMEC = null; opt1Carrier = opt2Carrier = opt3Carrier = 'AZ'; const mecSel = document.getElementById('r-mec'); if (mecSel) mecSel.value = 'unknown'; updateMECBadge(); document.getElementById('save-case-btn').textContent = 'Save to Pipeline'; }
   if (n === 3) { syncOpt2(); syncOpt3(); renderCarrierRec(); recalcOptions(); buildAdvDis(); }
   if (n === 4) buildOnePager();
 }
@@ -1039,7 +1172,7 @@ function renderCarrierRec() {
   const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
   const funded = csv + p2 * 5;
   const d = decideCarrier(age, funded);
-  if (!carrierManuallySelected) { selectedCarrier = d.c === 'both' || d.c === 'none' ? 'AZ' : d.c; }
+  if (!carrierManuallySelected) { selectedCarrier = d.c === 'both' || d.c === 'none' ? 'AZ' : d.c; opt1Carrier = opt2Carrier = opt3Carrier = selectedCarrier; }
   updateCarrierToggle();
   const cls = d.st === 'ok' ? 'ok' : d.st === 'er' ? 'er' : 'wn';
   const bc = d.c === 'CL' ? 'cl' : d.c === 'both' || d.c === 'none' ? 'wn' : 'az';
@@ -1057,7 +1190,19 @@ function updateCarrierToggle() {
   document.getElementById('c-cl').className = 'carrier-opt' + (selectedCarrier === 'CL' ? ' sel' : '');
 }
 
-function selectCarrier(c) { selectedCarrier = c; carrierManuallySelected = true; updateCarrierToggle(); recalcOptions(); buildAdvDis(); }
+function selectCarrier(c) { selectedCarrier = c; opt1Carrier = opt2Carrier = opt3Carrier = c; carrierManuallySelected = true; updateCarrierToggle(); recalcOptions(); buildAdvDis(); }
+function setOptCarrier(n, c) {
+  if (n === 1) opt1Carrier = c;
+  else if (n === 2) opt2Carrier = c;
+  else opt3Carrier = c;
+  recalcOptions();
+}
+function optCarrierBtns(n) {
+  const cur = n === 1 ? opt1Carrier : (n === 2 ? opt2Carrier : opt3Carrier);
+  return ['AZ','CL'].map(c =>
+    `<span onclick="setOptCarrier(${n},'${c}')" style="cursor:pointer;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;background:${cur===c?'#1a2c4e':'#e8e8e8'};color:${cur===c?'white':'#999'};margin-right:2px">${c}</span>`
+  ).join('');
+}
 
 function syncOpt2() {
   const pr = parseFloat(document.getElementById('r-prem')?.value) || 0;
@@ -1120,33 +1265,68 @@ function calcOptData(csv, currentDB, age, carrier, p2, p3) {
   return { f, c, minDB, db0, o1Prem, o1DB, showO2, showO3 };
 }
 
+// Compute a single option for one carrier. isOpt1=true → $0-premium path with min DB fallback.
+function calcSingleOpt(csv, currentDB, age, carrier, prem, isOpt1) {
+  const f = getDBFactor(age);
+  if (!f || !csv) return null;
+  const c = carrier === 'AZ' ? 'AZ' : 'CL';
+  const minDB = carrier === 'AZ' ? AZ_MIN_DB : CL_MIN_DB;
+  if (isOpt1) {
+    const db0 = Math.round(csv * f);
+    if (db0 >= minDB) return { prem: 0, db: db0, c };
+    const minPrem = Math.ceil((minDB / f - csv) / 5);
+    return minPrem > 0 ? { prem: minPrem, db: minDB, c } : null;
+  } else {
+    if (!prem) return null;
+    const db = Math.round((csv + prem * 5) * f);
+    if (db < minDB) return null;
+    const dbDisplay = (currentDB && Math.abs(db - currentDB) <= 10) ? currentDB : db;
+    return { prem, db: dbDisplay, c };
+  }
+}
+
 function recalcOptions() {
   const csv = parseFloat(document.getElementById('r-csv')?.value) || 0;
+  const currentDB = parseFloat(document.getElementById('r-db')?.value) || 0;
   const age = parseInt(document.getElementById('f-age')?.value) || 0;
   const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
   const p3 = parseFloat(document.getElementById('opt3')?.value) || 0;
   const f = getDBFactor(age);
-  const db0 = f ? Math.round(csv * f) : null;
+  const mec = isMECPolicy();
+  const effectiveCsv = mec ? csv * 1.10 : csv;
+  const db0 = f ? Math.round(effectiveCsv * (mec ? getDBFactor(parseInt(document.getElementById('f-age')?.value)||0) || 1 : f)) : null;
   document.getElementById('c-info').textContent = fmt$(csv) + ' / age ' + (age || '?') + ' / ' + (f ? f + 'x' : '?');
-  document.getElementById('c-db0').textContent = db0 ? fmt$(db0) : '—';
+  document.getElementById('c-db0').textContent = (f ? fmt$(Math.round(effectiveCsv * f)) : null) || '—';
 
-  const opts = calcOptData(csv, 0, age, selectedCarrier, p2, p3);
-  const cl = opts.c;
+  const r1 = calcSingleOpt(effectiveCsv, 0, age, opt1Carrier, 0, true);
+  const r2 = !mec && p2 ? calcSingleOpt(effectiveCsv, currentDB, age, opt2Carrier, p2, false) : null;
+  const r3 = !mec && p3 ? calcSingleOpt(effectiveCsv, currentDB, age, opt3Carrier, p3, false) : null;
+
+  const optRow = (n, r, prem, label) => {
+    const carrierName = (n === 1 ? opt1Carrier : (n === 2 ? opt2Carrier : opt3Carrier)) === 'AZ' ? 'Allianz' : 'Columbus Life';
+    let txt;
+    if (mec && n === 1) txt = r ? `(${r.c}) Surrender, ${fmt$(csv)} PDF = ${fmt$(r.db)} DB` : `<span style="color:#c0392b">CSV too low for ${carrierName} minimum</span>`;
+    else if (r) txt = r.prem > 0 ? `(${r.c}) 1035 ${fmt$(csv)}, ${fmt$(r.prem)}/yr x5, ${fmt$(r.db)} DB` : `(${r.c}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(r.db)} DB`;
+    else if (prem || n === 1) txt = `<span style="color:#c0392b">${csv && f ? 'CSV too low for '+carrierName+' minimum' : '—'}</span>`;
+    else return '';
+    return `<div style="margin-bottom:4px;display:flex;align-items:center;gap:4px">${optCarrierBtns(n)}<span style="color:#888;font-size:11px;margin-right:2px">${label}</span><span style="font-size:11px">${txt}</span></div>`;
+  };
+
   let h = `<div style="padding:8px;background:#f8f8f8;border-radius:8px">`;
-  if (opts.o1DB) {
-    if (opts.o1Prem > 0)
-      h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 1: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(opts.o1Prem)}/yr x5, ${fmt$(opts.o1DB)} DB</div>`;
-    else
-      h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 1: </span>(${cl}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(opts.o1DB)} DB</div>`;
-  } else if (csv && f) {
-    h += `<div style="margin-bottom:3px;color:#c0392b"><span style="color:#888">Opt 1: </span>CSV too low to generate a valid option</div>`;
+  h += optRow(1, r1, 0, 'Opt 1:');
+  if (!mec) {
+    h += optRow(2, r2, p2, 'Opt 2:');
+    h += optRow(3, r3, p3, 'Opt 3:');
   }
-  if (opts.showO2)
-    h += `<div style="margin-bottom:3px"><span style="color:#888">Opt 2: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO2.prem)}/yr x5, ${fmt$(opts.showO2.db)} DB</div>`;
-  if (opts.showO3)
-    h += `<div><span style="color:#888">Opt 3: </span>(${cl}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO3.prem)}/yr x5, ${fmt$(opts.showO3.db)} DB</div>`;
   document.getElementById('opt-preview').innerHTML = h + '</div>';
   renderCarrierRec();
+}
+
+// ─── MEC HELPERS ───
+function isMECPolicy() { return document.getElementById('r-mec')?.value === 'yes'; }
+function updateMECBadge() {
+  const badge = document.getElementById('mec-badge');
+  if (badge) badge.style.display = isMECPolicy() ? 'flex' : 'none';
 }
 
 // ─── FLAGS ───
@@ -1198,6 +1378,8 @@ function updateFlags() {
     flags.push({ b: 1, t: 'Market risk: CV can lose money if the market goes down', s: 'Variable policy — no floor protection' });
   if (dbOption === 'increasing')
     flags.push({ b: 1, t: 'Increasing death benefit — will cause the cost of insurance to increase each year, potentially putting the policy at risk of lapse', s: 'Return of Premium / Option B increases COI over time' });
+  if (isMECPolicy())
+    flags.push({ b: 1, t: 'Policy is a MEC. Death Benefit is tax-free, but gains are taxable if withdrawn/loaned.', s: 'Modified Endowment Contract — 7-Pay Test violated' });
   if (!flags.some(f => f.b))
     flags.push({ b: 0, t: 'No major disadvantages flagged', s: 'Review fields above and adjust if needed' });
 
@@ -1301,14 +1483,24 @@ function buildOnePager() {
   const age = parseInt(document.getElementById('f-age')?.value) || 0;
   const p2 = parseFloat(document.getElementById('opt2')?.value) || 0;
   const p3 = parseFloat(document.getElementById('opt3')?.value) || 0;
-  const opts = calcOptData(csv, db, age, selectedCarrier, p2, p3);
-  const c = opts.c;
+  const mec = isMECPolicy();
+  const effectiveCsv = mec ? csv * 1.10 : csv;
+  const r1op = calcSingleOpt(effectiveCsv, db, age, opt1Carrier, 0, true);
+  const r2op = !mec && p2 ? calcSingleOpt(effectiveCsv, db, age, opt2Carrier, p2, false) : null;
+  const r3op = !mec && p3 ? calcSingleOpt(effectiveCsv, db, age, opt3Carrier, p3, false) : null;
   const outloan = parseFloat(document.getElementById('r-outloan')?.value) || 0;
   const loanSuffix = outloan ? ` (${fmt$(outloan)} outstanding loan)` : '';
   const csvDisplay = ((acc && acc !== csv) ? `${fmt$(acc)} / ${fmt$(csv)}` : fmt$(csv || acc)) + loanSuffix;
-  const o1 = opts.o1DB ? (opts.o1Prem > 0 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.o1Prem)}/yr x5, ${fmt$(opts.o1DB)} DB` : `(${c}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(opts.o1DB)} DB`) : '—';
-  const o2 = opts.showO2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO2.prem)}/yr x5, ${fmt$(opts.showO2.db)} DB` : '—';
-  const o3 = opts.showO3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO3.prem)}/yr x5, ${fmt$(opts.showO3.db)} DB` : '—';
+  const newPolicyHead = mec ? 'SURRENDER TO NEW POLICY' : '1035 TO NEW POLICY';
+  let o1, o2, o3;
+  if (mec) {
+    o1 = r1op ? `(${r1op.c}) Surrender, ${fmt$(csv)} PDF = ${fmt$(r1op.db)} DB` : '—';
+    o2 = '—'; o3 = '—';
+  } else {
+    o1 = r1op ? (r1op.prem > 0 ? `(${r1op.c}) 1035 ${fmt$(csv)}, ${fmt$(r1op.prem)}/yr x5, ${fmt$(r1op.db)} DB` : `(${r1op.c}) 1035 ${fmt$(csv)}, $0 premiums, ${fmt$(r1op.db)} DB`) : '—';
+    o2 = r2op ? `(${r2op.c}) 1035 ${fmt$(csv)}, ${fmt$(r2op.prem)}/yr x5, ${fmt$(r2op.db)} DB` : '—';
+    o3 = r3op ? `(${r3op.c}) 1035 ${fmt$(csv)}, ${fmt$(r3op.prem)}/yr x5, ${fmt$(r3op.db)} DB` : '—';
+  }
   document.getElementById('op-preview-box').innerHTML = `
     <div class="op-header">
       <div>
@@ -1333,7 +1525,7 @@ function buildOnePager() {
         <ol class="op-list">${[...curDis, ...manualDis].map(d => `<li>${d}</li>`).join('')}</ol>
       </div>
       <div class="op-col op-col-right">
-        <div class="op-col-head">1035 TO NEW POLICY</div>
+        <div class="op-col-head">${newPolicyHead}</div>
         <div class="op-field"><div class="op-field-label">Option 1:</div><div class="op-field-value">${o1}</div></div>
         <div class="op-field"><div class="op-field-label">Option 2: <em style="font-weight:400;color:#aaa">(if applicable)</em></div><div class="op-field-value">${o2}</div></div>
         <div class="op-field"><div class="op-field-label">Option 3: <em style="font-weight:400;color:#aaa">(if applicable)</em></div><div class="op-field-value">${o3}</div></div>
@@ -1351,7 +1543,8 @@ function redownloadPDFFromCase(id) {
   downloadPDF({
     client: c.client, csv: c.csv, db: c.dbAmount, pr: c.annualPremium,
     age: c.age, carrier: c.carrier, p2: c.opt2Premium, p3: c.opt3Premium,
-    dis: c.dis, adv: c.adv
+    dis: c.dis, adv: c.adv, isMEC: c.isMEC || false,
+    optCarriers: c.optCarriers || {}
   });
 }
 
@@ -1376,6 +1569,14 @@ function editCase(id) {
   document.getElementById('opt3').value = c.opt3Premium || '';
   selectedCarrier = c.carrier || 'AZ';
   carrierManuallySelected = true;
+  extractedIsMEC = c.isMEC || false;
+  const oc = c.optCarriers || {};
+  opt1Carrier = oc.o1 || c.carrier || 'AZ';
+  opt2Carrier = oc.o2 || c.carrier || 'AZ';
+  opt3Carrier = oc.o3 || c.carrier || 'AZ';
+  const mecSelEdit = document.getElementById('r-mec');
+  if (mecSelEdit) mecSelEdit.value = c.isMEC ? 'yes' : 'unknown';
+  updateMECBadge();
   // Navigate
   showPage('analysis', document.getElementById('nav-analysis'));
   goStep(2);
@@ -1402,14 +1603,28 @@ function downloadPDF(override) {
   const p3 = o.p3 ?? (parseFloat(document.getElementById('opt3')?.value) || 0);
   const pdfDis = o.dis ?? [...curDis, ...manualDis];
   const pdfAdv = o.adv ?? [...curAdv, ...manualAdv];
-  const opts = calcOptData(csv, db, age, carrier, p2, p3);
-  const c = opts.c;
+  const mecFlag = o.isMEC !== undefined ? o.isMEC : isMECPolicy();
+  const effectiveCsvPDF = mecFlag ? csv * 1.10 : csv;
+  // Use stored per-option carriers if available, fall back to session state or overall carrier
+  const oc = o.optCarriers || {};
+  const o1c = oc.o1 || opt1Carrier || carrier;
+  const o2c = oc.o2 || opt2Carrier || carrier;
+  const o3c = oc.o3 || opt3Carrier || carrier;
+  const r1pdf = calcSingleOpt(effectiveCsvPDF, db, age, o1c, 0, true);
+  const r2pdf = !mecFlag && p2 ? calcSingleOpt(effectiveCsvPDF, db, age, o2c, p2, false) : null;
+  const r3pdf = !mecFlag && p3 ? calcSingleOpt(effectiveCsvPDF, db, age, o3c, p3, false) : null;
   const outloan = o.outloan ?? (parseFloat(document.getElementById('r-outloan')?.value) || 0);
   const loanSuffix = outloan ? ` (${fmt$(outloan)} outstanding loan)` : '';
   const csvDisplay = ((acc && acc !== csv) ? `${fmt$(acc)} / ${fmt$(csv)}` : fmt$(csv || acc)) + loanSuffix;
-  const o1 = opts.o1DB ? (opts.o1Prem > 0 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.o1Prem)}/yr x5 = ${fmt$(opts.o1DB)} DB` : `(${c}) 1035 ${fmt$(csv)}, $0 premiums = ${fmt$(opts.o1DB)} DB`) : '';
-  const o2 = opts.showO2 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO2.prem)}/yr x5 = ${fmt$(opts.showO2.db)} DB` : '';
-  const o3 = opts.showO3 ? `(${c}) 1035 ${fmt$(csv)}, ${fmt$(opts.showO3.prem)}/yr x5 = ${fmt$(opts.showO3.db)} DB` : '';
+  let o1, o2, o3;
+  if (mecFlag) {
+    o1 = r1pdf ? `(${r1pdf.c}) Surrender, ${fmt$(csv)} PDF = ${fmt$(r1pdf.db)} DB` : '';
+    o2 = ''; o3 = '';
+  } else {
+    o1 = r1pdf ? (r1pdf.prem > 0 ? `(${r1pdf.c}) 1035 ${fmt$(csv)}, ${fmt$(r1pdf.prem)}/yr x5 = ${fmt$(r1pdf.db)} DB` : `(${r1pdf.c}) 1035 ${fmt$(csv)}, $0 premiums = ${fmt$(r1pdf.db)} DB`) : '';
+    o2 = r2pdf ? `(${r2pdf.c}) 1035 ${fmt$(csv)}, ${fmt$(r2pdf.prem)}/yr x5 = ${fmt$(r2pdf.db)} DB` : '';
+    o3 = r3pdf ? `(${r3pdf.c}) 1035 ${fmt$(csv)}, ${fmt$(r3pdf.prem)}/yr x5 = ${fmt$(r3pdf.db)} DB` : '';
+  }
 
   // ── HEADER ──
   doc.setFillColor(...NAVY);
@@ -1477,7 +1692,8 @@ function downloadPDF(override) {
 
   doc.setTextColor(...NAVY);
   doc.setFont('helvetica', 'bold');
-  doc.text('1035 TO NEW POLICY', MID + MID / 2, HEADER_H + 26, { align: 'center' });
+  const pdfColHead = mecFlag ? 'SURRENDER TO NEW POLICY' : '1035 TO NEW POLICY';
+  doc.text(pdfColHead, MID + MID / 2, HEADER_H + 26, { align: 'center' });
   doc.line(MID + MID / 2 - 68, HEADER_H + 31, MID + MID / 2 + 68, HEADER_H + 31);
 
   // Vertical divider
@@ -1632,6 +1848,8 @@ async function saveCase() {
     annualPremium: parseFloat(document.getElementById('r-prem')?.value) || 0,
     opt2Premium: parseFloat(document.getElementById('opt2')?.value) || 0,
     opt3Premium: parseFloat(document.getElementById('opt3')?.value) || 0,
+    isMEC: isMECPolicy(),
+    optCarriers: { o1: opt1Carrier, o2: opt2Carrier, o3: opt3Carrier },
     dis: [...curDis, ...manualDis],
     adv: [...curAdv, ...manualAdv],
     opt1: document.getElementById('opt-preview')?.innerText || ''
@@ -1724,37 +1942,43 @@ async function buildCasesTable() {
 
 // ─── PIPELINE ───
 async function buildPipeline() {
-  const cases = (await fetchCases()).filter(c => c.stage !== 0); // exclude leaderboard-only credits
-  const active = cases.filter(c => c.stage < 5).length;
-  const submitted = cases.filter(c => c.stage === 5).length;
-  const notSubmitted = cases.filter(c => c.stage === 6).length;
-  const total = submitted + notSubmitted;
+  let cases = (await fetchCases()).filter(c => c.stage > 0 && c.stage <= 6);
+
+  // Apply case manager filter
+  const cmFilter = document.getElementById('cm-filter')?.value || '';
+  if (cmFilter) cases = cases.filter(c => c.caseManager === cmFilter);
+
+  const active = cases.filter(c => c.stage < 6).length;
+  const inForce = cases.filter(c => c.stage === 6).length;
+  const total = cases.length;
   document.getElementById('pipe-active').textContent = active;
-  document.getElementById('pipe-submitted').textContent = submitted;
-  document.getElementById('pipe-rate').textContent = total ? Math.round(submitted / total * 100) + '%' : '—';
+  document.getElementById('pipe-submitted').textContent = inForce;
+  document.getElementById('pipe-rate').textContent = total ? Math.round(inForce / total * 100) + '%' : '—';
 
   let html = '';
   for (let s = 1; s <= 6; s++) {
     const stageCases = cases.filter(c => c.stage === s);
     const now2 = Date.now();
+    const timeoutHrs = STAGE_TIMEOUTS_HRS[s];
     const cards = stageCases.map(c => {
       const age = now2 - (c.stageUpdatedAt || c.createdAt || now2);
       const hrs = age / 3600000;
-      const days = age / 86400000;
-      let overdue = false, overdueMsg = '';
-      if (s === 1 && hrs > 24) { overdue = true; overdueMsg = `Waiting ${Math.floor(hrs)}hrs`; }
-      if (s === 2 && days > 7) { overdue = true; overdueMsg = `Waiting ${Math.floor(days)} days`; }
+      const overdue = timeoutHrs && hrs > timeoutHrs;
+      const days = Math.floor(hrs / 24);
+      const overdueMsg = hrs < 48 ? `${Math.floor(hrs)}h in stage` : `${days}d in stage`;
+      const fmt = v => v >= 1000 ? '$' + (v/1000).toFixed(0) + 'K' : v ? '$' + Math.round(v) : '';
+      const displayName = c.insuredName || c.client || '—';
       return `<div class="pipeline-card${overdue?' overdue':''}" onclick="openModal(${c.id})">
-        <div class="pc-name">${c.client}</div>
+        <div class="pc-name">${displayName}</div>
         <div class="pc-agent">${c.agent}</div>
-        <div class="pc-date">${c.date}</div>
-        ${overdue ? `<div class="pc-overdue">⚠ ${overdueMsg} — follow up needed</div>` : ''}
-        ${c.notes ? `<div class="pc-note">${c.notes.slice(0,40)}${c.notes.length>40?'…':''}</div>` : ''}
+        ${c.carrier ? `<div class="pc-date">${c.carrier}${c.targetPremium ? ' · ' + fmt(c.targetPremium) : ''}</div>` : ''}
+        ${c.caseManager ? `<div class="pc-date" style="color:#1a6fc4">CM: ${c.caseManager}</div>` : ''}
+        ${overdue ? `<div class="pc-overdue">⚠ ${overdueMsg} — action needed</div>` : ''}
       </div>`;
     }).join('');
     html += `<div class="stage-col">
-      <div class="stage-header ${s===1?'active':''}">${s}. ${STAGE_NAMES[s]}</div>
-      <div class="stage-cards">${cards || '<div style="padding:8px;font-size:10px;color:#ccc;text-align:center">—</div>'}</div>
+      <div class="stage-header ${s===1?'active':''}">${STAGE_NAMES[s]}</div>
+      <div class="stage-cards" ondragover="event.preventDefault()" ondrop="dropCase(event,${s})">${cards || '<div style="padding:8px;font-size:10px;color:#ccc;text-align:center">—</div>'}</div>
     </div>`;
   }
   document.getElementById('pipeline-board').innerHTML = html;
@@ -1773,13 +1997,14 @@ function openModal(id) {
   document.getElementById('modal-lead-source').value = c.leadSource || '';
   document.getElementById('modal-result').value = c.result || '';
   document.getElementById('modal-case-notes').value = c.caseNotes || '';
+  document.getElementById('modal-cm').value = c.caseManager || '';
   toggleReasonField(c.stage);
   document.getElementById('modal-stage-select').onchange = () => toggleReasonField(parseInt(document.getElementById('modal-stage-select').value));
   document.getElementById('stage-modal').classList.add('on');
 }
 
 function toggleReasonField(stage) {
-  document.getElementById('modal-reason-wrap').style.display = stage === 6 ? '' : 'none';
+  document.getElementById('modal-reason-wrap').style.display = (stage >= 7) ? '' : 'none';
 }
 
 function closeModal() {
@@ -1795,7 +2020,8 @@ async function saveStageChange() {
     reason: document.getElementById('modal-reason').value,
     leadSource: document.getElementById('modal-lead-source')?.value || '',
     result: document.getElementById('modal-result')?.value || '',
-    caseNotes: document.getElementById('modal-case-notes')?.value || ''
+    caseNotes: document.getElementById('modal-case-notes')?.value || '',
+    caseManager: document.getElementById('modal-cm')?.value || '',
   });
   closeModal();
   buildPipeline();
@@ -1883,6 +2109,62 @@ async function filterLB(q) {
   const max = merged[0]?.[2] || 1;
   const filtered = q ? merged.filter(r => r[0].toLowerCase().includes(q.toLowerCase()) || (r[1] || '').toLowerCase().includes(q.toLowerCase())) : merged;
   renderLB(filtered, max);
+}
+
+// ─── DRAG AND DROP (stub) ───
+async function dropCase(event, targetStage) {
+  event.preventDefault();
+  const id = parseInt(event.dataTransfer?.getData('caseId'));
+  if (!id) return;
+  await apiPut(`/api/cases/${id}`, { stage: targetStage });
+  buildPipeline();
+  showToast('Case moved');
+}
+
+// ─── NEW CASE MODAL ───
+function openNewCaseModal() {
+  document.getElementById('nc-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('new-case-modal').classList.add('on');
+}
+
+async function saveNewCase() {
+  const insured = document.getElementById('nc-insured').value.trim();
+  const agent = document.getElementById('nc-agent').value.trim();
+  if (!insured || !agent) { showToast('Insured name and agent required'); return; }
+  await apiPost('/api/cases', {
+    client: insured,
+    insuredName: insured,
+    agent,
+    carrier: document.getElementById('nc-carrier').value.trim(),
+    policyNumber: document.getElementById('nc-policy').value.trim(),
+    targetPremium: parseFloat(document.getElementById('nc-target').value) || 0,
+    fundingSource: document.getElementById('nc-funding').value.trim(),
+    date: document.getElementById('nc-date').value,
+    stage: parseInt(document.getElementById('nc-stage').value),
+    caseManager: document.getElementById('nc-cm').value,
+    revLifeCoach: document.getElementById('nc-coach').value,
+    annuityMarketer: document.getElementById('nc-marketer').value,
+  });
+  document.getElementById('new-case-modal').classList.remove('on');
+  // Clear form
+  ['nc-insured','nc-agent','nc-carrier','nc-policy','nc-target','nc-funding'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('nc-cm').value = '';
+  document.getElementById('nc-coach').value = '';
+  document.getElementById('nc-marketer').value = '';
+  document.getElementById('nc-stage').value = '1';
+  buildPipeline();
+  showToast('Case added to pipeline');
+}
+
+// ─── DRAG SCROLL (pipeline) ───
+function initPipelineDragScroll() {
+  const el = document.getElementById('pipeline-scroll-wrap');
+  if (!el) return;
+  let isDown = false, startX, scrollLeft;
+  el.addEventListener('mousedown', e => { if(e.target.closest('.pipeline-card')) return; isDown=true; startX=e.pageX-el.offsetLeft; scrollLeft=el.scrollLeft; el.style.cursor='grabbing'; });
+  el.addEventListener('mouseleave', () => { isDown=false; el.style.cursor='grab'; });
+  el.addEventListener('mouseup', () => { isDown=false; el.style.cursor='grab'; });
+  el.addEventListener('mousemove', e => { if(!isDown) return; e.preventDefault(); const x=e.pageX-el.offsetLeft; el.scrollLeft=scrollLeft-(x-startX)*1.5; });
 }
 
 // ─── TOAST ───

@@ -65,6 +65,18 @@ class Case(db.Model):
     dis = db.Column(db.JSON, default=list)
     adv = db.Column(db.JSON, default=list)
     opt1 = db.Column(db.Text, default='')
+    is_mec = db.Column(db.Boolean, default=False)
+    opt_carriers = db.Column(db.JSON, default=dict)
+    case_manager = db.Column(db.String(100), default='')
+    rev_life_coach = db.Column(db.String(100), default='')
+    annuity_marketer = db.Column(db.String(100), default='')
+    target_premium = db.Column(db.Float, default=0)
+    insured_name = db.Column(db.String(200), default='')
+    policy_number = db.Column(db.String(100), default='')
+    funding_source = db.Column(db.String(100), default='')
+    app_expiration_date = db.Column(db.Date, nullable=True)
+    reopen_date = db.Column(db.Date, nullable=True)
+    postpone_reason = db.Column(db.Text, default='')
     created_by = db.Column(db.String(20))
 
     def to_dict(self):
@@ -91,7 +103,19 @@ class Case(db.Model):
             'dis': self.dis or [],
             'adv': self.adv or [],
             'opt1': self.opt1 or '',
+            'isMEC': self.is_mec or False,
+            'optCarriers': self.opt_carriers or {},
             'createdBy': self.created_by,
+            'caseManager': self.case_manager or '',
+            'revLifeCoach': self.rev_life_coach or '',
+            'annuityMarketer': self.annuity_marketer or '',
+            'targetPremium': self.target_premium or 0,
+            'insuredName': self.insured_name or '',
+            'policyNumber': self.policy_number or '',
+            'fundingSource': self.funding_source or '',
+            'appExpirationDate': self.app_expiration_date.isoformat() if self.app_expiration_date else '',
+            'reopenDate': self.reopen_date.isoformat() if self.reopen_date else '',
+            'postponeReason': self.postpone_reason or '',
         }
 
 
@@ -219,6 +243,15 @@ def create_case():
         dis=data.get('dis', []),
         adv=data.get('adv', []),
         opt1=data.get('opt1', ''),
+        is_mec=data.get('isMEC', False),
+        opt_carriers=data.get('optCarriers', {}),
+        case_manager=data.get('caseManager', ''),
+        rev_life_coach=data.get('revLifeCoach', ''),
+        annuity_marketer=data.get('annuityMarketer', ''),
+        target_premium=data.get('targetPremium', 0),
+        insured_name=data.get('insuredName', data.get('client', '')),
+        policy_number=data.get('policyNumber', ''),
+        funding_source=data.get('fundingSource', ''),
         created_by=user['role']
     )
     db.session.add(case)
@@ -250,6 +283,22 @@ def update_case(case_id):
         case.result = data['result']
     if 'caseNotes' in data:
         case.case_notes = data['caseNotes']
+    if 'caseManager' in data:
+        case.case_manager = data['caseManager']
+    if 'revLifeCoach' in data:
+        case.rev_life_coach = data['revLifeCoach']
+    if 'annuityMarketer' in data:
+        case.annuity_marketer = data['annuityMarketer']
+    if 'targetPremium' in data:
+        case.target_premium = float(data['targetPremium'])
+    if 'insuredName' in data:
+        case.insured_name = data['insuredName']
+    if 'policyNumber' in data:
+        case.policy_number = data['policyNumber']
+    if 'fundingSource' in data:
+        case.funding_source = data['fundingSource']
+    if 'postponeReason' in data:
+        case.postpone_reason = data['postponeReason']
 
     db.session.commit()
     return jsonify(case.to_dict())
@@ -299,20 +348,29 @@ with app.app_context():
         ('annual_premium', 'FLOAT DEFAULT 0'),
         ('opt2_premium', 'FLOAT DEFAULT 0'),
         ('opt3_premium', 'FLOAT DEFAULT 0'),
+        ('is_mec', 'BOOLEAN DEFAULT FALSE'),
+        ('opt_carriers', "JSONB DEFAULT '{}'"),
+        ('case_manager', "VARCHAR(100) DEFAULT ''"),
+        ('rev_life_coach', "VARCHAR(100) DEFAULT ''"),
+        ('annuity_marketer', "VARCHAR(100) DEFAULT ''"),
+        ('target_premium', 'FLOAT DEFAULT 0'),
+        ('insured_name', "VARCHAR(200) DEFAULT ''"),
+        ('policy_number', "VARCHAR(100) DEFAULT ''"),
+        ('funding_source', "VARCHAR(100) DEFAULT ''"),
+        ('app_expiration_date', 'DATE'),
+        ('reopen_date', 'DATE'),
+        ('postpone_reason', "TEXT DEFAULT ''"),
     ]
     with db.engine.connect() as conn:
         for col, coltype in new_cols:
-            try:
-                conn.execute(text(f'ALTER TABLE cases ADD COLUMN {col} {coltype}'))
-                conn.commit()
-            except Exception:
-                pass
+            conn.execute(text(f'ALTER TABLE cases ADD COLUMN IF NOT EXISTS {col} {coltype}'))
+            conn.commit()
         # Migrations tracking
         try:
             conn.execute(text('CREATE TABLE IF NOT EXISTS migrations (name VARCHAR(100) PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'))
             conn.commit()
         except Exception:
-            pass
+            conn.rollback()
         try:
             applied = {r[0] for r in conn.execute(text('SELECT name FROM migrations')).fetchall()}
             if 'remove_sent_for_analysis_stage' not in applied:
@@ -324,7 +382,7 @@ with app.app_context():
                 conn.execute(text("INSERT INTO migrations (name) VALUES ('fix_katie_gr_name')"))
                 conn.commit()
         except Exception:
-            pass
+            conn.rollback()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
