@@ -1371,6 +1371,8 @@ function updateFlags() {
     flags.push({ b: ror < 4 ? 1 : 0, t: `${ror < 0 ? 'Negative' : 'Low'} ROR: ${fmt$(tp)} total premiums vs. ${fmt$(cvForRor)} CV, after ${Math.round(yr)} years = ${ror.toFixed(2)}% net annual ROR`, s: 'Calculated from extracted data' });
   if (!isNaN(loanNum) && loanNum > 3)
     flags.push({ b: 1, t: `High loan rate: ${loanNum}%`, s: 'Exceeds 3% threshold' });
+  if (type === 'Whole Life' && isNaN(loanNum))
+    flags.push({ b: 1, t: 'While not listed on the statement, most whole life policies have a high loan rate between 4-8%.', s: 'Loan rate not found on statement' });
   if (type === 'Indexed Universal Life' && !isNaN(capNum) && capNum < 10)
     flags.push({ b: 1, t: `Low cap rate: S&P 500 cap is ${capNum}%`, s: 'Below 10% threshold' });
   if (type === 'Variable Life')
