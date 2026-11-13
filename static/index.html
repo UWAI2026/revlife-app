@@ -538,12 +538,14 @@ input,select,textarea,button{font-family:inherit}
 
     <!-- PIPELINE PAGE -->
     <div class="page" id="page-pipeline">
-      <div class="page-title">Pending Pipeline</div>
-      <div class="page-sub">Track every case from app received to in force</div>
+      <div class="page-title">1035 Pipeline</div>
+      <div class="page-sub">Track every case from analysis to application</div>
       <div class="stat-row">
         <div class="stat-card"><div class="stat-label">Active cases</div><div class="stat-value" id="pipe-active">0</div></div>
-        <div class="stat-card"><div class="stat-label">In Force (YTD)</div><div class="stat-value" id="pipe-submitted">0</div></div>
-        <div class="stat-card"><div class="stat-label">Placement rate</div><div class="stat-value" id="pipe-rate">—</div></div>
+        <div class="stat-card"><div class="stat-label">Apps submitted (all time)</div><div class="stat-value" id="pipe-submitted">0</div></div>
+        <div class="stat-card"><div class="stat-label">Conversion rate</div><div class="stat-value" id="pipe-rate">—</div></div>
+        <div class="stat-card"><div class="stat-label">Total CSV (active cases)</div><div class="stat-value" id="pipe-csv">—</div></div>
+        <div class="stat-card"><div class="stat-label">Total Target (active cases)</div><div class="stat-value" id="pipe-target">—</div></div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
         <label style="font-size:12px;color:#555;font-weight:600">Case Manager:</label>
@@ -624,12 +626,12 @@ input,select,textarea,button{font-family:inherit}
       <div>
         <label class="fl">Stage</label>
         <select class="fi" id="nc-stage">
-          <option value="1">App Received</option>
-          <option value="2">Pending Approval</option>
-          <option value="3">Approved</option>
-          <option value="4">Funding Confirmation Pending</option>
-          <option value="5">Out for Delivery</option>
-          <option value="6">In Force</option>
+          <option value="1">1. Analysis Provided</option>
+          <option value="2">2. Appt Scheduled</option>
+          <option value="3">3. 1035 Presented</option>
+          <option value="4">4. 2nd Meeting Needed</option>
+          <option value="5">5. App Submitted</option>
+          <option value="6">6. Not Submitted</option>
         </select>
       </div>
       <div>
@@ -678,15 +680,12 @@ input,select,textarea,button{font-family:inherit}
     <div class="modal-sub" id="modal-case-info"></div>
     <label class="fl">Move to stage:</label>
     <select class="stage-select" id="modal-stage-select">
-      <option value="1">App Received</option>
-      <option value="2">Pending Approval</option>
-      <option value="3">Approved</option>
-      <option value="4">Funding Confirmation Pending</option>
-      <option value="5">Out for Delivery</option>
-      <option value="6">In Force</option>
-      <option value="7">Declined</option>
-      <option value="8">Withdrawn</option>
-      <option value="9">Postponed</option>
+      <option value="1">1. Analysis Provided</option>
+      <option value="2">2. Appt Scheduled</option>
+      <option value="3">3. 1035 Presented</option>
+      <option value="4">4. 2nd Meeting Needed</option>
+      <option value="5">5. App Submitted</option>
+      <option value="6">6. Not Submitted</option>
     </select>
     <div id="modal-reason-wrap" style="display:none">
       <label class="fl">Reason not submitted:</label>
@@ -740,10 +739,10 @@ const AZ_MIN = [[0,45,25000],[46,59,50000],[60,69,75000],[70,72,100000],[73,90,1
 const CL_MIN = [[0,45,10000],[46,59,12000],[60,69,15000],[70,79,25000]];
 const AZ_MIN_DB = 100000;
 const CL_MIN_DB = 25000;
-const STAGE_NAMES = ['','App Received','Pending Approval','Approved','Funding Confirmation Pending','Out for Delivery','In Force'];
-const STAGE_CLASSES = ['','stage-1','stage-2','stage-3','stage-4','stage-5','stage-6'];
-// Stage timeout in hours: [-, 24h, 1440h(60d), 24h, 72h(3d), 240h(10d), null]
-const STAGE_TIMEOUTS_HRS = [null, 24, 1440, 24, 72, 240, null];
+const STAGE_NAMES = ['','Analysis Provided','Appt Scheduled','1035 Presented','2nd Meeting Needed','App Submitted','Not Submitted'];
+const STAGE_CLASSES = ['','stage-2','stage-3','stage-4','stage-5','stage-6','stage-7'];
+// Stage timeout in hours: [-, 24h (follow up), 168h/7d (schedule appt), null, null, null, null]
+const STAGE_TIMEOUTS_HRS = [null, 24, 168, null, null, null, null];
 
 const LB_BASE = [["Shea, Kevin","",24],["Messina, Nick","",16],["Barnett, Kurtis","",15],["Heath, Slade","Caleb Heath",14],["Mundt, Justin","",18],["Singer, Peter","",11],["Campbell, Rocky","",10],["Grady, Brendan","Sean Flynn",9],["Rigano, Nick","Mikayla Carrah",9],["Ingier, Henry","",8],["Jacobsohn, Mark","",8],["Larson, Arika","",7],["McCambell, Kim","Chantal Smith",7],["Orfin, Dan","",7],["Weiss, Marty","",7],["Loveland, Tom","Jake Perreira",6],["Mullis, Chris","",6],["Retallick, Don","",6],["Shyman, Steve","",6],["Westall, Eric","Zak Moore",6],["Brumfield, Lisa","",6],["Caiati, Dominick","",5],["Deutsch, Mary","Maxwell Croft",5],["Dietz, Jesse","Alison Walker",5],["Baldwin, Steve","",4],["Bergeson, Amy","",4],["Campbell, Daniel","Brett Anderson",4],["Caulkins, Heather","Malaya Brockway",4],["Walker, Matt","Lavely, Sal",4],["Blackwell, Lisa","Devonte Wilson",3],["Erb, Vince","Lisa Chandler",3],["Grafrath, Katie","",3],["Grimes, Dustin","",3],["Hall, Ryan","",3],["Pomarico, Tony","",3],["Allen, Kim","",2],["Baun, Jean","",2],["Gayanyan, Nvard","",2],["Gibbs, Bo","Ryan Baumann",2],["McNinch, Joel","",2],["Miller, Matt","",2],["Olson, John","",2],["Pieracini, Andrew","Kim Allen",2],["Rogers, Hayward","",2],["Summerlin, Stacy","Keith Summerlin",2],["Turney, Scott","Justin Turney",2],["Villella, Judy","",2],["Weinberg, Rhonda","",2],["Campbell, Susan","",1],["Davis, JC","",1],["Fraga, Justin","",1],["Goehl, Steve","",1],["Henderson, Pamala","",1],["Hoffman, Pat & Schwann, Sid","",1],["Holland, Steve","",1],["Jacobs, Breck","",1],["Kagan, Andrew","",1],["Lau, Phil","",1],["Liggett, Hombre","",1],["Linnehan, Ryan","",1],["Pang, Wendy","",1],["Rael, Chris","",1],["Reising, John","",1],["Sims, Ben","",1],["Spivy, Randy","",1],["Watson, Tom","",1],["Allen, TJ","",0],["Bajerski, Evan","",0],["Balasu, Mitch","",0],["Cervone, Anthony","",0],["DeMell, Jon","",0],["Katz, Steve","",0],["Logan, Shelly","",0],["Murray, Mick","",0],["Tise, Dean","",0],["Viguer, Shelby","",0]];
 
@@ -1424,6 +1423,21 @@ function buildAdvDis() {
     if (dl.includes('market risk')) adv.push(m.mkt);
     if (dl.includes('increasing death benefit')) adv.push('Level death benefit — causes the cost of insurance to decrease over time as the cash value grows.');
   });
+  if (p3adv > pr && pr > 0 && age > 0) {
+    const newTotal5 = Math.round(p3adv * 5);
+    const years90 = Math.max(0, 90 - age);
+    const lifetimeTo90 = Math.round(pr * years90);
+    if (years90 > 5 && newTotal5 < lifetimeTo90) {
+      const years95 = Math.max(0, 95 - age);
+      const lifetimeTo95 = Math.round(pr * years95);
+      let savingsText = `Client saves money in total out of pocket premiums: ${fmt$(p3adv)} x 5 years (${fmt$(newTotal5)} total) vs. ${fmt$(pr)} for life (to age 90 = ${fmt$(lifetimeTo90)}`;
+      if (years95 > 5 && newTotal5 < lifetimeTo95) {
+        savingsText += ` / age 95 = ${fmt$(lifetimeTo95)}`;
+      }
+      savingsText += ')';
+      adv.push(savingsText);
+    }
+  }
   curAdv = [...new Set(adv)].filter(a => !removedAiAdv.has(a));
   const aiDisBtns = (d, i) => `<div class="adv-item d" style="display:flex;justify-content:space-between;align-items:center"><span>${d}</span><span style="display:flex;gap:5px;flex-shrink:0;margin-left:8px"><span onclick="editAiDis(${i})" title="Edit" style="cursor:pointer;color:#aaa;font-size:11px;border:1px solid #ddd;border-radius:3px;padding:0 4px;line-height:1.6">✎</span><span onclick="removeAiDis(${i})" title="Remove" style="cursor:pointer;color:#aaa;font-size:14px">×</span></span></div>`;
   const aiAdvBtns = (a, i) => `<div class="adv-item a" style="display:flex;justify-content:space-between;align-items:center"><span>${a}</span><span style="display:flex;gap:5px;flex-shrink:0;margin-left:8px"><span onclick="editAiAdv(${i})" title="Edit" style="cursor:pointer;color:#aaa;font-size:11px;border:1px solid #cde;border-radius:3px;padding:0 4px;line-height:1.6">✎</span><span onclick="removeAiAdv(${i})" title="Remove" style="cursor:pointer;color:#aaa;font-size:14px">×</span></span></div>`;
@@ -1948,12 +1962,18 @@ async function buildPipeline() {
   const cmFilter = document.getElementById('cm-filter')?.value || '';
   if (cmFilter) cases = cases.filter(c => c.caseManager === cmFilter);
 
-  const active = cases.filter(c => c.stage < 6).length;
-  const inForce = cases.filter(c => c.stage === 6).length;
-  const total = cases.length;
+  const active = cases.filter(c => c.stage < 5).length;
+  const submitted = cases.filter(c => c.stage === 5).length;
+  const notSubmitted = cases.filter(c => c.stage === 6).length;
+  const total = submitted + notSubmitted;
+  const activeCsvSum = cases.filter(c => c.stage < 5).reduce((sum, c) => sum + (parseFloat(c.csv) || 0), 0);
+  const activeTargetSum = activeCsvSum * 0.19;
+  const fmtCSV = v => v >= 1000000 ? '$' + (v/1000000).toFixed(2) + 'M' : v >= 1000 ? '$' + Math.round(v/1000) + 'K' : v ? '$' + Math.round(v) : '—';
   document.getElementById('pipe-active').textContent = active;
-  document.getElementById('pipe-submitted').textContent = inForce;
-  document.getElementById('pipe-rate').textContent = total ? Math.round(inForce / total * 100) + '%' : '—';
+  document.getElementById('pipe-submitted').textContent = submitted;
+  document.getElementById('pipe-rate').textContent = total ? Math.round(submitted / total * 100) + '%' : '—';
+  document.getElementById('pipe-csv').textContent = activeCsvSum > 0 ? fmtCSV(activeCsvSum) : '—';
+  document.getElementById('pipe-target').textContent = activeTargetSum > 0 ? fmtCSV(activeTargetSum) : '—';
 
   let html = '';
   for (let s = 1; s <= 6; s++) {
@@ -2004,7 +2024,7 @@ function openModal(id) {
 }
 
 function toggleReasonField(stage) {
-  document.getElementById('modal-reason-wrap').style.display = (stage >= 7) ? '' : 'none';
+  document.getElementById('modal-reason-wrap').style.display = (stage === 6) ? '' : 'none';
 }
 
 function closeModal() {
@@ -2047,16 +2067,23 @@ async function buildLeaderboard(data) {
     const firstName = parts[0].toLowerCase();
     const lastName = parts[parts.length - 1].toLowerCase();
     const existing = merged.find(r => {
-      const rLast = r[0].split(',')[0].toLowerCase().trim();
-      const rFirst = r[0].split(',')[1]?.toLowerCase().trim() || '';
-      // Match by last name + first name on primary agent
-      if (rLast === lastName && (!rFirst || rFirst.startsWith(firstName))) return true;
-      // Match by subagent full name
-      if (r[1]) {
-        const subParts = r[1].trim().split(' ');
-        const subFirst = subParts[0].toLowerCase();
-        const subLast = subParts[subParts.length - 1].toLowerCase();
-        if (subLast === lastName && subFirst.startsWith(firstName)) return true;
+      if (r[0].includes(',')) {
+        // LB_BASE format: "Last, First"
+        const rLast = r[0].split(',')[0].toLowerCase().trim();
+        const rFirst = r[0].split(',')[1]?.toLowerCase().trim() || '';
+        if (rLast === lastName && (!rFirst || rFirst.startsWith(firstName))) return true;
+        if (r[1]) {
+          const subParts = r[1].trim().split(' ');
+          const subFirst = subParts[0].toLowerCase();
+          const subLast = subParts[subParts.length - 1].toLowerCase();
+          if (subLast === lastName && subFirst.startsWith(firstName)) return true;
+        }
+      } else {
+        // Case-added format: "First Last"
+        const rParts = r[0].trim().split(' ');
+        const rFirst = rParts[0].toLowerCase();
+        const rLast = rParts[rParts.length - 1].toLowerCase();
+        if (rLast === lastName && rFirst.startsWith(firstName)) return true;
       }
       return false;
     });
@@ -2091,14 +2118,23 @@ async function filterLB(q) {
     const firstName = parts[0].toLowerCase();
     const lastName = parts[parts.length - 1].toLowerCase();
     const existing = merged.find(r => {
-      const rLast = r[0].split(',')[0].toLowerCase().trim();
-      const rFirst = r[0].split(',')[1]?.toLowerCase().trim() || '';
-      if (rLast === lastName && (!rFirst || rFirst.startsWith(firstName))) return true;
-      if (r[1]) {
-        const subParts = r[1].trim().split(' ');
-        const subFirst = subParts[0].toLowerCase();
-        const subLast = subParts[subParts.length - 1].toLowerCase();
-        if (subLast === lastName && subFirst.startsWith(firstName)) return true;
+      if (r[0].includes(',')) {
+        // LB_BASE format: "Last, First"
+        const rLast = r[0].split(',')[0].toLowerCase().trim();
+        const rFirst = r[0].split(',')[1]?.toLowerCase().trim() || '';
+        if (rLast === lastName && (!rFirst || rFirst.startsWith(firstName))) return true;
+        if (r[1]) {
+          const subParts = r[1].trim().split(' ');
+          const subFirst = subParts[0].toLowerCase();
+          const subLast = subParts[subParts.length - 1].toLowerCase();
+          if (subLast === lastName && subFirst.startsWith(firstName)) return true;
+        }
+      } else {
+        // Case-added format: "First Last"
+        const rParts = r[0].trim().split(' ');
+        const rFirst = rParts[0].toLowerCase();
+        const rLast = rParts[rParts.length - 1].toLowerCase();
+        if (rLast === lastName && rFirst.startsWith(firstName)) return true;
       }
       return false;
     });
